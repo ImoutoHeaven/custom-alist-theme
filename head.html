@@ -1,17 +1,30 @@
 <script>
-    // 静态模式开关：true 强制静态，false 维持当前动态
+    // 动效策略开关：staticMode=播放一次后停，allStaticMode=纯静态（忽略 staticMode）
     window.NEON_THEME_CONFIG = window.NEON_THEME_CONFIG || {
-        staticMode: false
+        staticMode: true,
+        allStaticMode: false
     };
 
-    (function initNeonStaticMode() {
+    (function initNeonMotionMode() {
+        const config = window.NEON_THEME_CONFIG || {};
         const prefersReduced = window.matchMedia &&
             window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const staticMode = Boolean(window.NEON_THEME_CONFIG.staticMode) || prefersReduced;
 
-        window.__NEON_STATIC_MODE = staticMode;
+        const allStaticMode = Boolean(config.allStaticMode) || prefersReduced;
+        const staticMode = Boolean(config.staticMode);
+        let motionMode = 'loop';
 
-        if (staticMode) {
+        if (allStaticMode) {
+            motionMode = 'all-static';
+        } else if (staticMode) {
+            motionMode = 'static';
+        }
+
+        window.__NEON_MOTION_MODE = motionMode;
+
+        if (motionMode === 'all-static') {
+            document.documentElement.classList.add('neon-all-static');
+        } else if (motionMode === 'static') {
             document.documentElement.classList.add('neon-static');
         }
     })();
@@ -2080,6 +2093,18 @@
         animation-iteration-count: 1 !important;
         animation-fill-mode: both !important;
     }
+
+    /* ==================== 纯静态模式：不渲染动画 ==================== */
+    .neon-all-static #neon-stage-container,
+    .neon-all-static .neon-logo-wrapper::after,
+    .neon-all-static .lens-flare,
+    .neon-all-static .dust {
+        animation: none !important;
+    }
+
+    .neon-all-static #neon-bg-layer {
+        transition: none !important;
+    }
 </style>
 
 <script>
@@ -2232,7 +2257,9 @@
 
         let currentVariant = 0;
         let animationTimer = null;
-        const isStaticMode = Boolean(window.__NEON_STATIC_MODE);
+        const motionMode = window.__NEON_MOTION_MODE || 'loop';
+        const isStaticMode = motionMode === 'static';
+        const isAllStaticMode = motionMode === 'all-static';
 
         // 获取随机变种（避免连续重复）
         function getRandomVariant(exclude) {
@@ -2263,7 +2290,7 @@
                 animationTimer = null;
             }
 
-            if (!isStaticMode) {
+            if (!isStaticMode && !isAllStaticMode) {
                 const duration = VARIANT_DURATIONS[variantNum];
                 animationTimer = setTimeout(() => {
                     const nextVariant = getRandomVariant(currentVariant);
@@ -2273,12 +2300,14 @@
         }
 
         // 初始化：随机选择第一个变种
-        const initialVariant = getRandomVariant(0);
-        applyVariant(initialVariant);
+        if (!isAllStaticMode) {
+            const initialVariant = getRandomVariant(0);
+            applyVariant(initialVariant);
+        }
 
         // 页面可见性变化时处理
         document.addEventListener('visibilitychange', function() {
-            if (isStaticMode) {
+            if (isStaticMode || isAllStaticMode) {
                 return;
             }
 
