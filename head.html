@@ -1,0 +1,2300 @@
+<script>
+    // 静态模式开关：true 强制静态，false 维持当前动态
+    window.NEON_THEME_CONFIG = window.NEON_THEME_CONFIG || {
+        staticMode: false
+    };
+
+    (function initNeonStaticMode() {
+        const prefersReduced = window.matchMedia &&
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const staticMode = Boolean(window.NEON_THEME_CONFIG.staticMode) || prefersReduced;
+
+        window.__NEON_STATIC_MODE = staticMode;
+
+        if (staticMode) {
+            document.documentElement.classList.add('neon-static');
+        }
+    })();
+</script>
+
+<link rel="stylesheet" href="https://s4.zstatic.net/ajax/libs/lxgw-wenkai-webfont/1.7.0/lxgwwenkai-regular.min.css">
+
+<style>
+    /* ==================== 自定义背景图片配置 ==================== */
+    :root {
+        --bg-image-url: url('https://imagebed.imoutoheaven.org/file/1764383041705_sunset-city-synthwave-digital-art-4k-wallpaper-uhdpaper.com-627_2_a.jpg');
+    }
+
+    /* ==================== 强制 Dark 模式 ==================== */
+    body {
+        background-color: #020005 !important;
+        color: #ffffff !important;
+    }
+
+    /* 边缘暗角增强 */
+    body::after {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 2;
+        background: radial-gradient(
+            ellipse 65% 55% at center,
+            transparent 0%,
+            transparent 40%,
+            rgba(2, 0, 5, 0.25) 70%,
+            rgba(2, 0, 5, 0.5) 100%
+        );
+        pointer-events: none;
+    }
+
+    /* 移除原生视频控件 */
+    video::-webkit-media-controls {
+        display: none;
+    }
+
+    /* ==================== Faust Neon 背景舞台系统（优化版） ==================== */
+
+    /* 背景容器 - 固定在视口底层 */
+    #neon-stage-container {
+        position: fixed;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+        animation: ambient-temperature 45s ease-in-out infinite;
+    }
+
+    /* 背景层：自定义图片（底层） */
+    #neon-bg-layer {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: var(--bg-image-url);
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        opacity: 0;
+        transition: opacity 3s ease-in-out;
+    }
+
+    /* 遮罩层：深黑紫色，跟随 logo 亮度呼吸（GPU 加速） */
+    #neon-bg-layer::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: rgba(20, 10, 25, 1);
+        pointer-events: none;
+    }
+
+    /* Logo 容器 */
+    .neon-logo-wrapper {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-8deg) skewX(-12deg);
+        width: 90vw;
+        max-width: none;
+        aspect-ratio: 560 / 210;
+        z-index: 1;
+    }
+
+    /* 最外层光晕：椭圆径向渐变伪元素 */
+    .neon-logo-wrapper::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 170%;
+        height: 176%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(
+            ellipse 48% 50% at center,
+            rgba(255, 0, 170, 0.35) 0%,
+            rgba(255, 96, 160, 0.22) 18%,
+            rgba(200, 0, 255, 0.14) 35%,
+            rgba(150, 0, 220, 0.08) 52%,
+            rgba(100, 0, 200, 0.04) 70%,
+            rgba(80, 0, 180, 0.015) 85%,
+            transparent 100%
+        );
+        mix-blend-mode: screen;
+        pointer-events: none;
+        z-index: -1;
+    }
+
+    /* 色散光束：从Logo发射的光线 */
+    .neon-logo-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 300%;
+        height: 1px;
+        transform: translate(-50%, -50%) rotate(-15deg);
+        background: linear-gradient(
+            90deg,
+            transparent 0%,
+            rgba(255, 0, 170, 0.15) 45%,
+            rgba(255, 100, 180, 0.25) 50%,
+            rgba(255, 0, 170, 0.15) 55%,
+            transparent 100%
+        );
+        box-shadow:
+            0 0 30px rgba(255, 0, 170, 0.4),
+            0 0 60px rgba(200, 0, 255, 0.2);
+        opacity: 0;
+        animation: light-beam-fade 8s ease-in-out infinite;
+        pointer-events: none;
+        z-index: -2;
+    }
+
+    @keyframes light-beam-fade {
+        0%, 100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(-15deg) scaleX(0.8);
+        }
+        50% {
+            opacity: 0.6;
+            transform: translate(-50%, -50%) rotate(-15deg) scaleX(1);
+        }
+    }
+
+    /* 漂浮光尘系统 */
+    #dust-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    .dust {
+        position: absolute;
+        width: 1.5px;
+        height: 1.5px;
+        background: rgba(255, 180, 220, 0.4);
+        border-radius: 50%;
+        box-shadow: 0 0 3px rgba(255, 100, 200, 0.6);
+        will-change: transform;
+    }
+
+    .dust:nth-child(1) {
+        left: 15%;
+        top: -5%;
+        animation: drift-1 32s linear infinite;
+    }
+
+    .dust:nth-child(2) {
+        left: 60%;
+        top: -5%;
+        animation: drift-2 28s linear infinite;
+    }
+
+    .dust:nth-child(3) {
+        left: 85%;
+        top: -5%;
+        animation: drift-3 35s linear infinite;
+    }
+
+    .dust:nth-child(4) {
+        left: 35%;
+        top: -5%;
+        animation: drift-4 30s linear infinite;
+    }
+
+    @keyframes drift-1 {
+        0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+        5% { opacity: 0.5; }
+        50% { transform: translate(20px, 50vh) scale(1); opacity: 0.7; }
+        95% { opacity: 0.3; }
+        100% { transform: translate(-15px, 105vh) scale(0.8); opacity: 0; }
+    }
+
+    @keyframes drift-2 {
+        0% { transform: translate(0, 0) scale(0.7); opacity: 0; }
+        8% { opacity: 0.6; }
+        50% { transform: translate(-30px, 50vh) scale(1); opacity: 0.8; }
+        92% { opacity: 0.4; }
+        100% { transform: translate(25px, 105vh) scale(0.6); opacity: 0; }
+    }
+
+    @keyframes drift-3 {
+        0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+        6% { opacity: 0.4; }
+        50% { transform: translate(15px, 50vh) scale(0.9); opacity: 0.6; }
+        94% { opacity: 0.2; }
+        100% { transform: translate(-20px, 105vh) scale(0.7); opacity: 0; }
+    }
+
+    @keyframes drift-4 {
+        0% { transform: translate(0, 0) scale(0.8); opacity: 0; }
+        7% { opacity: 0.5; }
+        50% { transform: translate(-10px, 50vh) scale(1.1); opacity: 0.7; }
+        93% { opacity: 0.3; }
+        100% { transform: translate(30px, 105vh) scale(0.5); opacity: 0; }
+    }
+
+    /* 镜头光晕 */
+    .lens-flare {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 400px;
+        height: 400px;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(
+            circle,
+            rgba(255, 100, 180, 0.08) 0%,
+            rgba(255, 0, 170, 0.05) 30%,
+            transparent 60%
+        );
+        opacity: 0;
+        animation: flare-pulse 12s ease-in-out infinite;
+        pointer-events: none;
+        mix-blend-mode: screen;
+        z-index: -1;
+    }
+
+    @keyframes flare-pulse {
+        0%, 100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        50% {
+            opacity: 0.7;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+    }
+
+    .neon-master-svg {
+        width: 100%;
+        height: auto;
+        overflow: visible;
+    }
+
+    /* ================== 霓虹管多层渲染 ================== */
+
+    .layer-tube-off {
+        fill: none;
+        stroke: #3d2040;
+        stroke-width: 0.3mm;
+        opacity: 0.85;
+    }
+
+    .layer-atmosphere {
+        fill: none;
+        stroke: #ff00aa;
+        stroke-width: 0.2mm;
+        opacity: 0.6;
+        filter:
+            drop-shadow(0 0 10px rgba(255, 0, 170, 0.8))
+            drop-shadow(0 0 50px rgba(150, 0, 220, 0.6));
+        mix-blend-mode: screen;
+    }
+
+    .layer-outer-glow {
+        fill: none;
+        stroke: #ff60a0;
+        stroke-width: 0.6mm;
+        filter:
+            drop-shadow(0 0 25px rgba(255, 96, 160, 0.8))
+            drop-shadow(0 0 50px rgba(255, 96, 160, 0.6))
+            drop-shadow(0 0 80px rgba(200, 0, 255, 0.4));
+        mix-blend-mode: screen;
+    }
+
+    .layer-inner-glow {
+        fill: none;
+        stroke: #ff80c0;
+        stroke-width: 0.4mm;
+        filter: url(#glow-inner);
+        mix-blend-mode: screen;
+    }
+
+    .layer-core {
+        fill: none;
+        stroke: #ffe0f5;
+        stroke-width: 0.3mm;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        filter: url(#glow-core);
+    }
+
+    .layer-glitch-red,
+    .layer-glitch-cyan {
+        fill: none;
+        stroke-width: 0.2mm;
+        opacity: 0;
+        mix-blend-mode: screen;
+    }
+
+    .layer-glitch-red {
+        stroke: #ff3333;
+        filter: drop-shadow(2px 0 0 rgba(255,0,0,0.8));
+    }
+
+    .layer-glitch-cyan {
+        stroke: #00ffff;
+        filter: drop-shadow(-2px 0 0 rgba(0,255,255,0.8));
+    }
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗     ██╗
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ███║
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║       ╚██║
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║        ██║
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║        ██║
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝        ╚═╝
+       经典电压不稳 - Classic Voltage Instability
+       特征：快速电压波动，偶发深度暗场，带有电流涌动感
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-1 {
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        3%   { opacity: 0.98; stroke: #ffe8f8; }
+        5%   { opacity: 1;    stroke: #fff0fa; }
+        8%   { opacity: 0.97; stroke: #ffe0f5; }
+        10%  { opacity: 1;    stroke: #ffe0f5; }
+        12%  { opacity: 0.99; stroke: #ffd8f0; }
+        15%  { opacity: 1;    stroke: #ffe0f5; }
+        18%  { opacity: 0.92; stroke: #ffb0d8; }
+        19%  { opacity: 0.88; stroke: #ff90c8; }
+        20%  { opacity: 0.9;  stroke: #ff60c0; }
+        21%  { opacity: 0.88; stroke: #ff00aa; }
+        22%  { opacity: 0.95; stroke: #ffc0e0; }
+        23%  { opacity: 1;    stroke: #ffe0f5; }
+        25%  { opacity: 0.98; stroke: #ffe0f5; }
+        28%  { opacity: 1;    stroke: #ffe0f5; }
+        29%  { opacity: 0.25; stroke: #ff80c8; }
+        30%  { opacity: 0.18; stroke: #ff50b0; }
+        31%  { opacity: 0.15; stroke: #ff40b8; }
+        32%  { opacity: 0.12; stroke: #ff30b0; }
+        33%  { opacity: 0.1;  stroke: #ff20b0; }
+        34%  { opacity: 0.65; stroke: #ff70c5; }
+        35%  { opacity: 0.55; stroke: #ff50b8; }
+        36%  { opacity: 0.5;  stroke: #ff40b5; }
+        37%  { opacity: 0.42; stroke: #ff20a8; }
+        38%  { opacity: 0.35; stroke: #ff00aa; }
+        39%  { opacity: 0.25; stroke: #ff009a; }
+        40%  { opacity: 0.18; stroke: #ff0098; }
+        41%  { opacity: 0.1;  stroke: #ff0090; }
+        42%  { opacity: 0.06; stroke: #ff0088; }
+        43%  { opacity: 0.05; stroke: #ff0078; }
+        44%  { opacity: 0.04; stroke: #ff0072; }
+        45%  { opacity: 0.04; stroke: #ff0070; }
+        46%  { opacity: 0.05; stroke: #ff0072; }
+        47%  { opacity: 0.08; stroke: #ff0078; }
+        48%  { opacity: 0.04; stroke: #ff0070; }
+        49%  { opacity: 0.2;  stroke: #ff0085; }
+        50%  { opacity: 0.35; stroke: #ff0090; }
+        51%  { opacity: 0.08; stroke: #ff0078; }
+        52%  { opacity: 0.15; stroke: #ff2088; }
+        53%  { opacity: 0.3;  stroke: #ff3095; }
+        54%  { opacity: 0.45; stroke: #ff40a0; }
+        55%  { opacity: 0.52; stroke: #ff50a8; }
+        56%  { opacity: 0.58; stroke: #ff60b0; }
+        57%  { opacity: 0.62; stroke: #ff70b8; }
+        58%  { opacity: 0.7;  stroke: #ff90c8; }
+        59%  { opacity: 0.78; stroke: #ffa8d5; }
+        60%  { opacity: 0.85; stroke: #ffb8dc; }
+        61%  { opacity: 0.9;  stroke: #ffc8e5; }
+        62%  { opacity: 0.95; stroke: #ffe0f5; }
+        63%  { opacity: 0.98; stroke: #ffe5f6; }
+        65%  { opacity: 1;    stroke: #ffe0f5; }
+        68%  { opacity: 0.99; stroke: #ffe0f5; }
+        70%  { opacity: 1;    stroke: #ffe5f6; }
+        72%  { opacity: 0.98; stroke: #ffe0f5; }
+        75%  { opacity: 1;    stroke: #ffe0f5; }
+        76%  { opacity: 1;    stroke: #ffecf8; }
+        77%  { opacity: 1;    stroke: #fff6fc; }
+        78%  { opacity: 1;    stroke: #ffffff; }
+        79%  { opacity: 1;    stroke: #ffffff; }
+        80%  { opacity: 1;    stroke: #ffffff; }
+        81%  { opacity: 1;    stroke: #fffcfe; }
+        82%  { opacity: 1;    stroke: #fff6fc; }
+        83%  { opacity: 1;    stroke: #fff0fa; }
+        84%  { opacity: 1;    stroke: #ffecf8; }
+        85%  { opacity: 1;    stroke: #ffe0f5; }
+        88%  { opacity: 0.99; stroke: #ffe0f5; }
+        90%  { opacity: 1;    stroke: #ffe2f5; }
+        92%  { opacity: 0.98; stroke: #ffddf2; }
+        95%  { opacity: 1;    stroke: #ffe0f5; }
+        98%  { opacity: 0.99; stroke: #ffe0f5; }
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-1 {
+        0%   { opacity: 0.9;  }
+        3%   { opacity: 0.88; }
+        5%   { opacity: 0.9;  }
+        8%   { opacity: 0.92; }
+        10%  { opacity: 0.9;  }
+        12%  { opacity: 0.88; }
+        15%  { opacity: 0.9;  }
+        18%  { opacity: 0.8;  }
+        19%  { opacity: 0.75; }
+        20%  { opacity: 0.82; }
+        22%  { opacity: 0.9;  }
+        25%  { opacity: 0.88; }
+        28%  { opacity: 0.9;  }
+        29%  { opacity: 0.7;  }
+        30%  { opacity: 0.5;  }
+        31%  { opacity: 0.35; }
+        33%  { opacity: 0.25; }
+        35%  { opacity: 0.3;  }
+        37%  { opacity: 0.22; }
+        40%  { opacity: 0.15; }
+        42%  { opacity: 0.1;  }
+        45%  { opacity: 0.08; }
+        48%  { opacity: 0.1;  }
+        50%  { opacity: 0.2;  }
+        52%  { opacity: 0.25; }
+        55%  { opacity: 0.35; }
+        58%  { opacity: 0.5;  }
+        60%  { opacity: 0.65; }
+        62%  { opacity: 0.8;  }
+        65%  { opacity: 0.9;  }
+        70%  { opacity: 0.88; }
+        75%  { opacity: 0.9;  }
+        78%  { opacity: 0.98; }
+        80%  { opacity: 1;    }
+        82%  { opacity: 0.98; }
+        85%  { opacity: 0.9;  }
+        90%  { opacity: 0.88; }
+        95%  { opacity: 0.9;  }
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-1 {
+        0%   { opacity: 0.7;  }
+        3%   { opacity: 0.68; }
+        5%   { opacity: 0.72; }
+        8%   { opacity: 0.7;  }
+        10%  { opacity: 0.72; }
+        12%  { opacity: 0.68; }
+        15%  { opacity: 0.7;  }
+        18%  { opacity: 0.65; }
+        20%  { opacity: 0.75; }
+        22%  { opacity: 0.72; }
+        25%  { opacity: 0.7;  }
+        28%  { opacity: 0.68; }
+        30%  { opacity: 0.5;  }
+        32%  { opacity: 0.4;  }
+        35%  { opacity: 0.35; }
+        38%  { opacity: 0.25; }
+        40%  { opacity: 0.18; }
+        42%  { opacity: 0.15; }
+        45%  { opacity: 0.12; }
+        48%  { opacity: 0.15; }
+        50%  { opacity: 0.2;  }
+        52%  { opacity: 0.25; }
+        55%  { opacity: 0.35; }
+        58%  { opacity: 0.48; }
+        60%  { opacity: 0.55; }
+        62%  { opacity: 0.65; }
+        65%  { opacity: 0.75; }
+        68%  { opacity: 0.7;  }
+        70%  { opacity: 0.72; }
+        75%  { opacity: 0.75; }
+        78%  { opacity: 0.9;  }
+        80%  { opacity: 1;    }
+        82%  { opacity: 0.9;  }
+        85%  { opacity: 0.78; }
+        88%  { opacity: 0.72; }
+        92%  { opacity: 0.7;  }
+        95%  { opacity: 0.72; }
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-1 {
+        0%   { opacity: 0.5; filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        5%   { opacity: 0.52; }
+        10%  { opacity: 0.55; }
+        15%  { opacity: 0.5; }
+        20%  { opacity: 0.58; }
+        25%  { opacity: 0.55; }
+        30%  { opacity: 0.45; }
+        35%  { opacity: 0.35; }
+        40%  { opacity: 0.25; }
+        45%  { opacity: 0.2; }
+        50%  { opacity: 0.3; filter: drop-shadow(0 0 12px rgba(255,0,170,0.7)) drop-shadow(0 0 55px rgba(150,0,220,0.6)); }
+        55%  { opacity: 0.45; }
+        60%  { opacity: 0.6; }
+        65%  { opacity: 0.7; }
+        70%  { opacity: 0.72; }
+        75%  { opacity: 0.75; }
+        80%  { opacity: 0.8; filter: drop-shadow(0 0 15px rgba(255,0,170,0.8)) drop-shadow(0 0 70px rgba(150,0,220,0.7)); }
+        85%  { opacity: 0.7; }
+        90%  { opacity: 0.6; }
+        95%  { opacity: 0.55; }
+        100% { opacity: 0.5; filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-1 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        58%  { opacity: 0; transform: translate(0,0); }
+        60%  { opacity: 0; transform: translate(0,0); }
+        61%  { opacity: 0.3; transform: translate(-2px, 1px); }
+        61.5% { opacity: 0.6; transform: translate(-3px, 1.5px); }
+        62%  { opacity: 0.7; transform: translate(-4px, 2px); }
+        62.5% { opacity: 0.5; transform: translate(-3px, 1px); }
+        63%  { opacity: 0.2; transform: translate(-1px, 0.5px); }
+        63.5% { opacity: 0; transform: translate(0,0); }
+        82%  { opacity: 0; transform: translate(0,0); }
+        84%  { opacity: 0; transform: translate(0,0); }
+        84.5% { opacity: 0.4; transform: translate(-3px, -1.5px); }
+        85%  { opacity: 0.8; transform: translate(-6px, -3px); }
+        85.5% { opacity: 0.7; transform: translate(-5px, -2.5px); }
+        86%  { opacity: 0.5; transform: translate(-3px, -1.5px); }
+        86.5% { opacity: 0.2; transform: translate(-1px, -0.5px); }
+        87%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-1 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        58%  { opacity: 0; transform: translate(0,0); }
+        60%  { opacity: 0; transform: translate(0,0); }
+        61%  { opacity: 0.3; transform: translate(2px, -1px); }
+        61.5% { opacity: 0.6; transform: translate(3px, -1.5px); }
+        62%  { opacity: 0.7; transform: translate(4px, -2px); }
+        62.5% { opacity: 0.5; transform: translate(3px, -1px); }
+        63%  { opacity: 0.2; transform: translate(1px, -0.5px); }
+        63.5% { opacity: 0; transform: translate(0,0); }
+        82%  { opacity: 0; transform: translate(0,0); }
+        84%  { opacity: 0; transform: translate(0,0); }
+        84.5% { opacity: 0.4; transform: translate(3px, 1.5px); }
+        85%  { opacity: 0.8; transform: translate(6px, 3px); }
+        85.5% { opacity: 0.7; transform: translate(5px, 2.5px); }
+        86%  { opacity: 0.5; transform: translate(3px, 1.5px); }
+        86.5% { opacity: 0.2; transform: translate(1px, 0.5px); }
+        87%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-1 {
+        0%   { opacity: 0.82; }
+        3%   { opacity: 0.81; }
+        5%   { opacity: 0.82; }
+        8%   { opacity: 0.80; }
+        10%  { opacity: 0.82; }
+        12%  { opacity: 0.81; }
+        15%  { opacity: 0.80; }
+        18%  { opacity: 0.78; }
+        20%  { opacity: 0.82; }
+        25%  { opacity: 0.80; }
+        28%  { opacity: 0.78; }
+        30%  { opacity: 0.72; }
+        33%  { opacity: 0.68; }
+        35%  { opacity: 0.65; }
+        40%  { opacity: 0.62; }
+        45%  { opacity: 0.65; }
+        48%  { opacity: 0.68; }
+        50%  { opacity: 0.70; }
+        55%  { opacity: 0.72; }
+        60%  { opacity: 0.75; }
+        65%  { opacity: 0.78; }
+        70%  { opacity: 0.80; }
+        75%  { opacity: 0.82; }
+        80%  { opacity: 0.88; }
+        82%  { opacity: 0.86; }
+        85%  { opacity: 0.84; }
+        90%  { opacity: 0.82; }
+        95%  { opacity: 0.81; }
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-1 {
+        0%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        3%   { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        5%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        8%   { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        10%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        15%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        20%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.98); }
+        25%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.97); }
+        30%  { opacity: 0.4;  transform: translate(-50%, -50%) scale(0.96); }
+        35%  { opacity: 0.3;  transform: translate(-50%, -50%) scale(0.95); }
+        40%  { opacity: 0.2;  transform: translate(-50%, -50%) scale(0.94); }
+        45%  { opacity: 0.15; transform: translate(-50%, -50%) scale(0.95); }
+        50%  { opacity: 0.25; transform: translate(-50%, -50%) scale(0.96); }
+        55%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.97); }
+        60%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.98); }
+        65%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        70%  { opacity: 0.65; transform: translate(-50%, -50%) scale(1.01); }
+        75%  { opacity: 0.7;  transform: translate(-50%, -50%) scale(1.02); }
+        80%  { opacity: 0.8;  transform: translate(-50%, -50%) scale(1.05); }
+        82%  { opacity: 0.75; transform: translate(-50%, -50%) scale(1.04); }
+        85%  { opacity: 0.7;  transform: translate(-50%, -50%) scale(1.02); }
+        90%  { opacity: 0.65; transform: translate(-50%, -50%) scale(1.01); }
+        95%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗    ██████╗ 
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ╚════██╗
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║        █████╔╝
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║       ██╔═══╝ 
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║       ███████╗
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝       ╚══════╝
+       接触不良 - Loose Contact (慵懒余韵版)
+       特征：长时间稳定后突然接触不良，电压跌落带红移，慵懒恢复
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-2 {
+        /* 漫长稳定期：霓虹管温暖地闪耀 */
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        3%   { opacity: 0.99; stroke: #ffe2f6; }
+        5%   { opacity: 1;    stroke: #ffe5f7; }
+        8%   { opacity: 0.99; stroke: #ffe0f5; }
+        10%  { opacity: 1;    stroke: #ffe0f5; }
+        12%  { opacity: 0.98; stroke: #ffddf3; }
+        15%  { opacity: 1;    stroke: #ffe0f5; }
+        18%  { opacity: 0.99; stroke: #ffe2f6; }
+        20%  { opacity: 0.98; stroke: #fff0fa; }
+        22%  { opacity: 0.99; stroke: #ffe8f8; }
+        25%  { opacity: 1;    stroke: #ffe0f5; }
+        28%  { opacity: 0.99; stroke: #ffe0f5; }
+        30%  { opacity: 1;    stroke: #ffe2f6; }
+        32%  { opacity: 0.98; stroke: #ffe0f5; }
+        35%  { opacity: 1;    stroke: #ffe0f5; }
+        38%  { opacity: 0.99; stroke: #ffe0f5; }
+        40%  { opacity: 1;    stroke: #ffe0f5; }
+        /* 第一次接触不良：轻微颤动 */
+        42%  { opacity: 0.8;  stroke: #ffb0e0; }
+        42.5% { opacity: 0.88; stroke: #ffc8e8; }
+        43%  { opacity: 0.95; stroke: #ffe0f5; }
+        43.5% { opacity: 0.7;  stroke: #ff80c8; }
+        44%  { opacity: 0.6;  stroke: #ff50b0; }
+        44.5% { opacity: 0.65; stroke: #ff60b5; }
+        45%  { opacity: 0.7;  stroke: #ff80c0; }
+        45.5% { opacity: 0.78; stroke: #ffa0d0; }
+        46%  { opacity: 0.9;  stroke: #ffe0f5; }
+        48%  { opacity: 0.95; stroke: #ffe0f5; }
+        50%  { opacity: 0.98; stroke: #ffe0f5; }
+        52%  { opacity: 1;    stroke: #ffe0f5; }
+        55%  { opacity: 0.99; stroke: #ffe0f5; }
+        58%  { opacity: 1;    stroke: #ffe0f5; }
+        60%  { opacity: 1;    stroke: #ffe0f5; }
+        62%  { opacity: 0.99; stroke: #ffe0f5; }
+        65%  { opacity: 1;    stroke: #ffe0f5; }
+        68%  { opacity: 0.98; stroke: #ffe0f5; }
+        /* 第二次接触不良：更明显，带红移 */
+        70%  { opacity: 0.85; stroke: #ffc0e0; }
+        71%  { opacity: 0.6;  stroke: #ff60a0; }
+        71.5% { opacity: 0.45; stroke: #ff3090; }
+        72%  { opacity: 0.4;  stroke: #ff0080; }
+        72.2% { opacity: 0.32; stroke: #dd0070; }
+        72.5% { opacity: 0.3;  stroke: #aa0060; }
+        72.8% { opacity: 0.32; stroke: #cc0070; }
+        73%  { opacity: 0.4;  stroke: #ff0080; }
+        73.5% { opacity: 0.55; stroke: #ff4098; }
+        74%  { opacity: 0.7;  stroke: #ff80b8; }
+        74.5% { opacity: 0.82; stroke: #ffb0d8; }
+        75%  { opacity: 0.9;  stroke: #ffd0f0; }
+        76%  { opacity: 0.95; stroke: #ffe0f5; }
+        78%  { opacity: 0.98; stroke: #ffe0f5; }
+        80%  { opacity: 1;    stroke: #ffe0f5; }
+        82%  { opacity: 0.99; stroke: #ffe0f5; }
+        85%  { opacity: 1;    stroke: #ffe0f5; }
+        88%  { opacity: 0.99; stroke: #ffe0f5; }
+        90%  { opacity: 1;    stroke: #ffe0f5; }
+        92%  { opacity: 0.99; stroke: #ffe5f8; }
+        95%  { opacity: 1;    stroke: #fff5fb; }
+        98%  { opacity: 0.99; stroke: #ffecf8; }
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-2 {
+        0%   { opacity: 0.9;  }
+        5%   { opacity: 0.88; }
+        10%  { opacity: 0.9;  }
+        15%  { opacity: 0.92; }
+        20%  { opacity: 0.9;  }
+        25%  { opacity: 0.88; }
+        30%  { opacity: 0.9;  }
+        35%  { opacity: 0.92; }
+        40%  { opacity: 0.9;  }
+        42%  { opacity: 0.75; }
+        43%  { opacity: 0.85; }
+        44%  { opacity: 0.6;  }
+        45%  { opacity: 0.7;  }
+        46%  { opacity: 0.9;  }
+        50%  { opacity: 0.88; }
+        55%  { opacity: 0.9;  }
+        60%  { opacity: 0.92; }
+        65%  { opacity: 0.9;  }
+        70%  { opacity: 0.7;  }
+        71%  { opacity: 0.5;  }
+        72%  { opacity: 0.3;  }
+        72.5% { opacity: 0.25; }
+        73%  { opacity: 0.35; }
+        74%  { opacity: 0.55; }
+        75%  { opacity: 0.85; }
+        78%  { opacity: 0.88; }
+        80%  { opacity: 0.9;  }
+        85%  { opacity: 0.92; }
+        90%  { opacity: 0.9;  }
+        95%  { opacity: 0.88; }
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-2 {
+        0%   { opacity: 0.7;  }
+        5%   { opacity: 0.68; }
+        10%  { opacity: 0.7;  }
+        15%  { opacity: 0.72; }
+        20%  { opacity: 0.7;  }
+        25%  { opacity: 0.68; }
+        30%  { opacity: 0.7;  }
+        35%  { opacity: 0.72; }
+        40%  { opacity: 0.7;  }
+        42%  { opacity: 0.55; }
+        44%  { opacity: 0.4;  }
+        46%  { opacity: 0.7;  }
+        50%  { opacity: 0.68; }
+        55%  { opacity: 0.7;  }
+        60%  { opacity: 0.72; }
+        65%  { opacity: 0.7;  }
+        70%  { opacity: 0.5;  }
+        72%  { opacity: 0.2;  }
+        72.5% { opacity: 0.15; }
+        73%  { opacity: 0.25; }
+        75%  { opacity: 0.65; }
+        78%  { opacity: 0.68; }
+        80%  { opacity: 0.7;  }
+        85%  { opacity: 0.72; }
+        90%  { opacity: 0.7;  }
+        95%  { opacity: 0.68; }
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-2 {
+        0%   { opacity: 0.5; filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        2%   { opacity: 0.55; filter: drop-shadow(0 0 10px rgba(255,0,170,0.65)); }
+        3%   { opacity: 0.6; filter: drop-shadow(0 0 10px rgba(255,0,170,0.7)); }
+        5%   { opacity: 0.58; }
+        10%  { opacity: 0.6; }
+        15%  { opacity: 0.62; }
+        20%  { opacity: 0.6; }
+        25%  { opacity: 0.58; }
+        30%  { opacity: 0.6; }
+        35%  { opacity: 0.62; }
+        40%  { opacity: 0.6; }
+        42%  { opacity: 0.45; }
+        44%  { opacity: 0.4; filter: drop-shadow(0 0 8px rgba(255,0,170,0.5)); }
+        46%  { opacity: 0.6; }
+        50%  { opacity: 0.58; }
+        55%  { opacity: 0.6; }
+        60%  { opacity: 0.62; }
+        65%  { opacity: 0.6; }
+        70%  { opacity: 0.5; }
+        71%  { opacity: 0.35; }
+        72%  { opacity: 0.2; }
+        73%  { opacity: 0.2; filter: drop-shadow(0 0 5px rgba(255,0,170,0.3)); }
+        74%  { opacity: 0.4; }
+        76%  { opacity: 0.6; }
+        80%  { opacity: 0.58; }
+        85%  { opacity: 0.6; }
+        90%  { opacity: 0.62; }
+        95%  { opacity: 0.6; }
+        97%  { opacity: 0.55; filter: drop-shadow(0 0 10px rgba(255,0,170,0.65)); }
+        98%  { opacity: 0.52; filter: drop-shadow(0 0 10px rgba(255,0,170,0.62)) drop-shadow(0 0 35px rgba(150,0,220,0.5)); }
+        100% { opacity: 0.5; filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-2 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        69%  { opacity: 0; transform: translate(0,0); }
+        70%  { opacity: 0; transform: translate(0,0); }
+        71%  { opacity: 0.2; transform: translate(-1px, 0.5px); }
+        71.5% { opacity: 0.4; transform: translate(-2px, 1px); }
+        72%  { opacity: 0.5; transform: translate(-2px, 1px); }
+        72.5% { opacity: 0.4; transform: translate(-1.5px, 0.8px); }
+        73%  { opacity: 0.2; transform: translate(-1px, 0.5px); }
+        73.5% { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-2 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        69%  { opacity: 0; transform: translate(0,0); }
+        70%  { opacity: 0; transform: translate(0,0); }
+        71%  { opacity: 0.2; transform: translate(1px, -0.5px); }
+        71.5% { opacity: 0.4; transform: translate(2px, -1px); }
+        72%  { opacity: 0.5; transform: translate(2px, -1px); }
+        72.5% { opacity: 0.4; transform: translate(1.5px, -0.8px); }
+        73%  { opacity: 0.2; transform: translate(1px, -0.5px); }
+        73.5% { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-2 {
+        0%   { opacity: 0.82; }
+        5%   { opacity: 0.81; }
+        10%  { opacity: 0.82; }
+        15%  { opacity: 0.80; }
+        20%  { opacity: 0.82; }
+        25%  { opacity: 0.81; }
+        30%  { opacity: 0.82; }
+        35%  { opacity: 0.80; }
+        40%  { opacity: 0.82; }
+        42%  { opacity: 0.78; }
+        44%  { opacity: 0.76; }
+        46%  { opacity: 0.80; }
+        50%  { opacity: 0.82; }
+        55%  { opacity: 0.81; }
+        60%  { opacity: 0.82; }
+        65%  { opacity: 0.80; }
+        70%  { opacity: 0.78; }
+        72%  { opacity: 0.75; }
+        73%  { opacity: 0.72; }
+        75%  { opacity: 0.80; }
+        78%  { opacity: 0.82; }
+        80%  { opacity: 0.81; }
+        85%  { opacity: 0.82; }
+        90%  { opacity: 0.80; }
+        95%  { opacity: 0.82; }
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-2 {
+        0%   { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        10%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        20%  { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        30%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        40%  { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        42%  { opacity: 0.45; transform: translate(-50%, -50%) scale(0.97); }
+        44%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.95); }
+        46%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.98); }
+        50%  { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        60%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        70%  { opacity: 0.45; transform: translate(-50%, -50%) scale(0.96); }
+        72%  { opacity: 0.25; transform: translate(-50%, -50%) scale(0.92); }
+        73%  { opacity: 0.2; transform: translate(-50%, -50%) scale(0.9); }
+        75%  { opacity: 0.5; transform: translate(-50%, -50%) scale(0.97); }
+        80%  { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+        90%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗    ██████╗ 
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ╚════██╗
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║        █████╔╝
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║        ╚══██╔╝
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║         ╚═╝  
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝         ██╗  
+       电压不足 - Underpowered (Synthwave深呼吸版)                  ╚═╝  
+       特征：持续低能量，色温偏暖红，缓慢波动，营造慵懒氛围
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-3 {
+        /* 从标准状态开始 */
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        /* 快速过渡到variant-3特色状态：低能量偏红 */
+        2%   { opacity: 0.85; stroke: #ffb0d8; }
+        3%   { opacity: 0.75; stroke: #ffa0c8; }
+        4%   { opacity: 0.7;  stroke: #ff90c0; }
+        /* 进入variant-3特色动画 */
+        5%   { opacity: 0.68; stroke: #ff88b8; }
+        6%   { opacity: 0.65; stroke: #ff80b0; }
+        8%   { opacity: 0.6;  stroke: #ff70a8; }
+        10%  { opacity: 0.55; stroke: #ff60a0; }
+        12%  { opacity: 0.5;  stroke: #ff55a0; }
+        14%  { opacity: 0.45; stroke: #ff50a0; }
+        16%  { opacity: 0.42; stroke: #ff48a0; }
+        18%  { opacity: 0.4;  stroke: #ff40a0; }
+        20%  { opacity: 0.35; stroke: #ff30a0; }
+        22%  { opacity: 0.4;  stroke: #ff40a0; }
+        /* 漫长的低能量状态 */
+        24%  { opacity: 0.32; stroke: #ff2890; }
+        26%  { opacity: 0.28; stroke: #ff1888; }
+        28%  { opacity: 0.25; stroke: #ff1085; }
+        30%  { opacity: 0.22; stroke: #ff0882; }
+        32%  { opacity: 0.2;  stroke: #ff0080; }
+        34%  { opacity: 0.18; stroke: #ee0078; }
+        36%  { opacity: 0.17; stroke: #dd0070; }
+        38%  { opacity: 0.16; stroke: #cc0068; }
+        40%  { opacity: 0.15; stroke: #cc0060; }
+        42%  { opacity: 0.15; stroke: #cc0060; }
+        44%  { opacity: 0.16; stroke: #dd0068; }
+        46%  { opacity: 0.17; stroke: #ee0070; }
+        48%  { opacity: 0.18; stroke: #ff0078; }
+        50%  { opacity: 0.19; stroke: #ff007c; }
+        52%  { opacity: 0.2;  stroke: #ff0080; }
+        /* 尝试重燃失败 */
+        54%  { opacity: 0.3;  stroke: #ff2090; }
+        55%  { opacity: 0.4;  stroke: #ff40a0; }
+        56%  { opacity: 0.48; stroke: #ff58a8; }
+        57%  { opacity: 0.5;  stroke: #ff60b0; }
+        57.5% { opacity: 0.25; stroke: #cc0068; }
+        58%  { opacity: 0.1;  stroke: #aa0050; }
+        58.5% { opacity: 0.12; stroke: #bb0058; }
+        59%  { opacity: 0.15; stroke: #cc0060; }
+        60%  { opacity: 0.18; stroke: #dd0068; }
+        /* 缓慢稳定充能 */
+        62%  { opacity: 0.22; stroke: #ee0075; }
+        64%  { opacity: 0.25; stroke: #ff0080; }
+        66%  { opacity: 0.28; stroke: #ff1088; }
+        67%  { opacity: 0.3;  stroke: #ff3090; }
+        69%  { opacity: 0.35; stroke: #ff4098; }
+        70%  { opacity: 0.4;  stroke: #ff50a0; }
+        72%  { opacity: 0.45; stroke: #ff60a8; }
+        74%  { opacity: 0.5;  stroke: #ff70b0; }
+        76%  { opacity: 0.55; stroke: #ff78b8; }
+        77%  { opacity: 0.6;  stroke: #ff80c0; }
+        79%  { opacity: 0.62; stroke: #ff88c5; }
+        80%  { opacity: 0.65; stroke: #ff90c8; }
+        82%  { opacity: 0.68; stroke: #ff98cc; }
+        84%  { opacity: 0.72; stroke: #ffa0d0; }
+        86%  { opacity: 0.75; stroke: #ffb0d8; }
+        87%  { opacity: 0.75; stroke: #ffb0d8; }
+        89%  { opacity: 0.73; stroke: #ffa8d2; }
+        90%  { opacity: 0.7;  stroke: #ffa0cc; }
+        92%  { opacity: 0.65; stroke: #ff90c0; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.75; stroke: #ffa0c8; }
+        96%  { opacity: 0.85; stroke: #ffc0e0; }
+        98%  { opacity: 0.92; stroke: #ffd8ee; }
+        /* 回到标准状态 */
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-3 {
+        0%   { opacity: 0.9;  }
+        2%   { opacity: 0.75; }
+        3%   { opacity: 0.65; }
+        4%   { opacity: 0.6;  }
+        6%   { opacity: 0.55; }
+        10%  { opacity: 0.45; }
+        15%  { opacity: 0.35; }
+        20%  { opacity: 0.25; }
+        25%  { opacity: 0.18; }
+        30%  { opacity: 0.12; }
+        35%  { opacity: 0.1;  }
+        40%  { opacity: 0.1;  }
+        45%  { opacity: 0.12; }
+        50%  { opacity: 0.15; }
+        55%  { opacity: 0.4;  }
+        56%  { opacity: 0.05; }
+        58%  { opacity: 0.1;  }
+        62%  { opacity: 0.18; }
+        65%  { opacity: 0.25; }
+        70%  { opacity: 0.35; }
+        75%  { opacity: 0.5;  }
+        80%  { opacity: 0.6;  }
+        85%  { opacity: 0.7;  }
+        88%  { opacity: 0.65; }
+        90%  { opacity: 0.58; }
+        94%  { opacity: 0.65; }
+        96%  { opacity: 0.75; }
+        98%  { opacity: 0.85; }
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-3 {
+        0%   { opacity: 0.7;  }
+        2%   { opacity: 0.6;  }
+        3%   { opacity: 0.55; }
+        4%   { opacity: 0.5;  }
+        6%   { opacity: 0.45; }
+        10%  { opacity: 0.38; }
+        15%  { opacity: 0.3;  }
+        20%  { opacity: 0.22; }
+        25%  { opacity: 0.15; }
+        30%  { opacity: 0.12; }
+        35%  { opacity: 0.1;  }
+        40%  { opacity: 0.1;  }
+        45%  { opacity: 0.12; }
+        50%  { opacity: 0.15; }
+        55%  { opacity: 0.35; }
+        56%  { opacity: 0.08; }
+        58%  { opacity: 0.12; }
+        65%  { opacity: 0.2;  }
+        70%  { opacity: 0.3;  }
+        75%  { opacity: 0.42; }
+        80%  { opacity: 0.52; }
+        85%  { opacity: 0.6;  }
+        88%  { opacity: 0.55; }
+        90%  { opacity: 0.5;  }
+        94%  { opacity: 0.55; }
+        96%  { opacity: 0.6;  }
+        98%  { opacity: 0.65; }
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-3 {
+        0%   { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        3%   { opacity: 0.48; filter: drop-shadow(0 0 12px rgba(255,0,145,0.55)); }
+        4%   { opacity: 0.5;  filter: drop-shadow(0 0 15px rgba(255,0,120,0.5)); }
+        6%   { opacity: 0.45; filter: drop-shadow(0 0 12px rgba(255,0,120,0.45)); }
+        10%  { opacity: 0.38; filter: drop-shadow(0 0 10px rgba(255,0,120,0.4)); }
+        15%  { opacity: 0.3;  filter: drop-shadow(0 0 18px rgba(200,0,100,0.35)); }
+        20%  { opacity: 0.25; filter: drop-shadow(0 0 22px rgba(180,0,100,0.32)); }
+        25%  { opacity: 0.22; filter: drop-shadow(0 0 25px rgba(160,0,100,0.3)); }
+        30%  { opacity: 0.2;  filter: drop-shadow(0 0 30px rgba(150,0,100,0.3)); }
+        35%  { opacity: 0.18; }
+        40%  { opacity: 0.15; }
+        45%  { opacity: 0.18; }
+        50%  { opacity: 0.2;  }
+        55%  { opacity: 0.4;  }
+        56%  { opacity: 0.1;  }
+        58%  { opacity: 0.15; }
+        65%  { opacity: 0.25; filter: drop-shadow(0 0 18px rgba(255,0,130,0.4)); }
+        70%  { opacity: 0.35; }
+        75%  { opacity: 0.42; }
+        80%  { opacity: 0.48; }
+        85%  { opacity: 0.5;  filter: drop-shadow(0 0 20px rgba(255,0,150,0.6)); }
+        90%  { opacity: 0.48; }
+        94%  { opacity: 0.5;  filter: drop-shadow(0 0 12px rgba(255,0,145,0.55)); }
+        97%  { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,160,0.58)) drop-shadow(0 0 35px rgba(150,0,220,0.5)); }
+        100% { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-3 {
+        /* 电压不足时不产生glitch */
+        0%   { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-3 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-3 {
+        0%   { opacity: 0.82; }
+        2%   { opacity: 0.80; }
+        3%   { opacity: 0.79; }
+        4%   { opacity: 0.78; }
+        6%   { opacity: 0.75; }
+        10%  { opacity: 0.72; }
+        15%  { opacity: 0.7;  }
+        20%  { opacity: 0.68; }
+        25%  { opacity: 0.66; }
+        30%  { opacity: 0.65; }
+        35%  { opacity: 0.63; }
+        40%  { opacity: 0.65; }
+        45%  { opacity: 0.66; }
+        50%  { opacity: 0.68; }
+        55%  { opacity: 0.72; }
+        56%  { opacity: 0.60; }
+        58%  { opacity: 0.62; }
+        65%  { opacity: 0.68; }
+        70%  { opacity: 0.72; }
+        75%  { opacity: 0.75; }
+        80%  { opacity: 0.78; }
+        85%  { opacity: 0.80; }
+        88%  { opacity: 0.78; }
+        90%  { opacity: 0.76; }
+        94%  { opacity: 0.78; }
+        96%  { opacity: 0.80; }
+        98%  { opacity: 0.81; }
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-3 {
+        0%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        2%   { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.97); }
+        3%   { opacity: 0.45; transform: translate(-50%, -50%) scale(0.96); }
+        4%   { opacity: 0.4;  transform: translate(-50%, -50%) scale(0.95); }
+        6%   { opacity: 0.35; transform: translate(-50%, -50%) scale(0.94); }
+        10%  { opacity: 0.28; transform: translate(-50%, -50%) scale(0.92); }
+        15%  { opacity: 0.22; transform: translate(-50%, -50%) scale(0.9); }
+        20%  { opacity: 0.18; transform: translate(-50%, -50%) scale(0.88); }
+        25%  { opacity: 0.15; transform: translate(-50%, -50%) scale(0.86); }
+        30%  { opacity: 0.12; transform: translate(-50%, -50%) scale(0.85); }
+        35%  { opacity: 0.1;  transform: translate(-50%, -50%) scale(0.84); }
+        40%  { opacity: 0.1;  transform: translate(-50%, -50%) scale(0.84); }
+        45%  { opacity: 0.12; transform: translate(-50%, -50%) scale(0.85); }
+        50%  { opacity: 0.15; transform: translate(-50%, -50%) scale(0.86); }
+        55%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.92); }
+        56%  { opacity: 0.08; transform: translate(-50%, -50%) scale(0.82); }
+        58%  { opacity: 0.12; transform: translate(-50%, -50%) scale(0.84); }
+        65%  { opacity: 0.22; transform: translate(-50%, -50%) scale(0.88); }
+        70%  { opacity: 0.32; transform: translate(-50%, -50%) scale(0.92); }
+        75%  { opacity: 0.42; transform: translate(-50%, -50%) scale(0.95); }
+        80%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.98); }
+        85%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+        88%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.98); }
+        90%  { opacity: 0.45; transform: translate(-50%, -50%) scale(0.96); }
+        94%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.97); }
+        96%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.98); }
+        98%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        100% { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗    ██╗  ██╗
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ██║  ██║
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║       ███████║
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║       ╚════██║
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║            ██║
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝            ╚═╝
+       落日余晖 - Sunset Afterglow
+       特征：暖橙→深紫的色温过渡，模拟日落时霓虹灯的温暖感，舒缓绵长
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        /* 快速过渡到variant-4特色：暖橙色调 */
+        2%   { opacity: 0.97; stroke: #ffc8b8; }
+        3%   { opacity: 0.96; stroke: #ffb898; }
+        4%   { opacity: 0.95; stroke: #ffb080; }
+        /* 进入variant-4特色动画：日落橙调 */
+        5%   { opacity: 0.96; stroke: #ffae7d; }
+        6%   { opacity: 0.97; stroke: #ffa575; }
+        8%   { opacity: 0.96; stroke: #ffa273; }
+        10%  { opacity: 0.95; stroke: #ff9f70; }
+        /* 过渡到粉橙 */
+        12%  { opacity: 0.96; stroke: #ff9c75; }
+        14%  { opacity: 0.97; stroke: #ff9980; }
+        15%  { opacity: 0.98; stroke: #ff9688; }
+        16%  { opacity: 0.97; stroke: #ff9390; }
+        18%  { opacity: 0.96; stroke: #ff9098; }
+        20%  { opacity: 0.95; stroke: #ff8da0; }
+        /* 粉色调 */
+        22%  { opacity: 0.96; stroke: #ff8aa8; }
+        24%  { opacity: 0.97; stroke: #ff88b0; }
+        25%  { opacity: 0.98; stroke: #ff85b8; }
+        26%  { opacity: 0.97; stroke: #ff82c0; }
+        28%  { opacity: 0.96; stroke: #ff80c5; }
+        30%  { opacity: 0.95; stroke: #ff7eca; }
+        /* 深化到洋红 */
+        32%  { opacity: 0.96; stroke: #ff7cd0; }
+        34%  { opacity: 0.97; stroke: #ff7ad5; }
+        35%  { opacity: 0.98; stroke: #ff78da; }
+        36%  { opacity: 0.99; stroke: #ff76df; }
+        38%  { opacity: 1;    stroke: #ff75e2; }
+        40%  { opacity: 0.99; stroke: #ff73e5; }
+        /* 紫色过渡 */
+        42%  { opacity: 0.98; stroke: #f870e5; }
+        44%  { opacity: 0.97; stroke: #f06de5; }
+        45%  { opacity: 0.96; stroke: #e86ae5; }
+        46%  { opacity: 0.95; stroke: #e068e5; }
+        48%  { opacity: 0.94; stroke: #d865e5; }
+        50%  { opacity: 0.93; stroke: #d062e5; }
+        /* 深紫 */
+        52%  { opacity: 0.92; stroke: #c860e2; }
+        54%  { opacity: 0.91; stroke: #c05ee0; }
+        55%  { opacity: 0.90; stroke: #b85cdd; }
+        56%  { opacity: 0.89; stroke: #b05ada; }
+        58%  { opacity: 0.88; stroke: #a858d8; }
+        60%  { opacity: 0.87; stroke: #a056d5; }
+        /* 最深紫——夜幕将至 */
+        62%  { opacity: 0.86; stroke: #9854d2; }
+        64%  { opacity: 0.85; stroke: #9052d0; }
+        65%  { opacity: 0.84; stroke: #8850cd; }
+        66%  { opacity: 0.84; stroke: #884fcc; }
+        68%  { opacity: 0.85; stroke: #8a50ce; }
+        70%  { opacity: 0.86; stroke: #8c52d0; }
+        /* 缓慢回暖 */
+        72%  { opacity: 0.87; stroke: #9055d2; }
+        74%  { opacity: 0.88; stroke: #9858d5; }
+        75%  { opacity: 0.89; stroke: #a05cd8; }
+        76%  { opacity: 0.90; stroke: #a860db; }
+        78%  { opacity: 0.91; stroke: #b268de; }
+        80%  { opacity: 0.92; stroke: #bc70e2; }
+        /* 返回粉紫 */
+        82%  { opacity: 0.93; stroke: #c878e5; }
+        84%  { opacity: 0.94; stroke: #d480e8; }
+        85%  { opacity: 0.95; stroke: #e088eb; }
+        86%  { opacity: 0.95; stroke: #e890ee; }
+        88%  { opacity: 0.94; stroke: #f098f0; }
+        90%  { opacity: 0.95; stroke: #f8a0f2; }
+        /* 回到暖粉 */
+        92%  { opacity: 0.96; stroke: #ffa8e0; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.97; stroke: #ffb8d0; }
+        96%  { opacity: 0.98; stroke: #ffc8e0; }
+        98%  { opacity: 0.99; stroke: #ffd8ea; }
+        /* 回到标准状态 */
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.9;  }
+        /* 快速过渡到variant-4特色 */
+        2%   { opacity: 0.88; }
+        3%   { opacity: 0.87; }
+        4%   { opacity: 0.85; }
+        /* 进入variant-4特色动画 */
+        5%   { opacity: 0.86; }
+        10%  { opacity: 0.87; }
+        15%  { opacity: 0.88; }
+        20%  { opacity: 0.87; }
+        25%  { opacity: 0.88; }
+        30%  { opacity: 0.89; }
+        35%  { opacity: 0.9;  }
+        40%  { opacity: 0.92; }
+        45%  { opacity: 0.9;  }
+        50%  { opacity: 0.88; }
+        55%  { opacity: 0.85; }
+        60%  { opacity: 0.82; }
+        65%  { opacity: 0.8;  }
+        70%  { opacity: 0.82; }
+        75%  { opacity: 0.85; }
+        80%  { opacity: 0.88; }
+        85%  { opacity: 0.9;  }
+        90%  { opacity: 0.88; }
+        92%  { opacity: 0.87; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.88; }
+        96%  { opacity: 0.89; }
+        98%  { opacity: 0.895;}
+        /* 回到标准状态 */
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.7;  }
+        /* 快速过渡到variant-4特色 */
+        2%   { opacity: 0.68; }
+        3%   { opacity: 0.67; }
+        4%   { opacity: 0.65; }
+        /* 进入variant-4特色动画 */
+        5%   { opacity: 0.66; }
+        10%  { opacity: 0.67; }
+        15%  { opacity: 0.68; }
+        20%  { opacity: 0.69; }
+        25%  { opacity: 0.7;  }
+        30%  { opacity: 0.72; }
+        35%  { opacity: 0.75; }
+        40%  { opacity: 0.78; }
+        45%  { opacity: 0.75; }
+        50%  { opacity: 0.72; }
+        55%  { opacity: 0.68; }
+        60%  { opacity: 0.65; }
+        65%  { opacity: 0.62; }
+        70%  { opacity: 0.65; }
+        75%  { opacity: 0.68; }
+        80%  { opacity: 0.7;  }
+        85%  { opacity: 0.72; }
+        90%  { opacity: 0.7;  }
+        92%  { opacity: 0.68; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.685;}
+        96%  { opacity: 0.69; }
+        98%  { opacity: 0.695;}
+        /* 回到标准状态 */
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        /* 快速过渡到variant-4特色：暖橙色氛围 */
+        3%   { opacity: 0.53; filter: drop-shadow(0 0 12px rgba(255,100,140,0.6)) drop-shadow(0 0 45px rgba(200,80,180,0.45)); }
+        4%   { opacity: 0.55; filter: drop-shadow(0 0 15px rgba(255,150,100,0.6)) drop-shadow(0 0 50px rgba(255,100,50,0.4)); }
+        /* 进入variant-4特色动画 */
+        10%  { opacity: 0.58; filter: drop-shadow(0 0 15px rgba(255,130,120,0.6)) drop-shadow(0 0 50px rgba(255,80,80,0.4)); }
+        20%  { opacity: 0.6;  filter: drop-shadow(0 0 15px rgba(255,100,150,0.6)) drop-shadow(0 0 50px rgba(255,50,120,0.4)); }
+        30%  { opacity: 0.62; filter: drop-shadow(0 0 15px rgba(255,80,180,0.6)) drop-shadow(0 0 50px rgba(255,0,170,0.4)); }
+        40%  { opacity: 0.65; filter: drop-shadow(0 0 18px rgba(255,60,220,0.65)) drop-shadow(0 0 55px rgba(200,0,220,0.45)); }
+        50%  { opacity: 0.62; filter: drop-shadow(0 0 18px rgba(220,80,230,0.6)) drop-shadow(0 0 55px rgba(180,0,230,0.4)); }
+        60%  { opacity: 0.58; filter: drop-shadow(0 0 15px rgba(180,80,220,0.55)) drop-shadow(0 0 50px rgba(150,0,220,0.35)); }
+        70%  { opacity: 0.55; filter: drop-shadow(0 0 15px rgba(160,90,210,0.55)) drop-shadow(0 0 50px rgba(140,20,200,0.35)); }
+        80%  { opacity: 0.58; filter: drop-shadow(0 0 15px rgba(200,100,220,0.58)) drop-shadow(0 0 50px rgba(180,50,200,0.38)); }
+        90%  { opacity: 0.56; filter: drop-shadow(0 0 15px rgba(240,120,200,0.58)) drop-shadow(0 0 50px rgba(220,80,150,0.38)); }
+        92%  { opacity: 0.54; filter: drop-shadow(0 0 13px rgba(250,80,190,0.6)) drop-shadow(0 0 45px rgba(200,50,200,0.45)); }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.53; filter: drop-shadow(0 0 12px rgba(253,50,180,0.6)) drop-shadow(0 0 43px rgba(180,30,210,0.48)); }
+        97%  { opacity: 0.51; filter: drop-shadow(0 0 11px rgba(254,20,175,0.6)) drop-shadow(0 0 41px rgba(160,10,215,0.49)); }
+        /* 回到标准状态 */
+        100% { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-4 {
+        /* 落日时分偶尔的轻微扰动 */
+        0%   { opacity: 0; transform: translate(0,0); }
+        35%  { opacity: 0; transform: translate(0,0); }
+        36%  { opacity: 0.15; transform: translate(-1px, 0.3px); }
+        36.5% { opacity: 0.25; transform: translate(-1.5px, 0.5px); }
+        37%  { opacity: 0.3; transform: translate(-2px, 0.5px); }
+        37.5% { opacity: 0.2; transform: translate(-1.2px, 0.3px); }
+        38%  { opacity: 0.1; transform: translate(-0.5px, 0.1px); }
+        38.5% { opacity: 0; transform: translate(0,0); }
+        65%  { opacity: 0; transform: translate(0,0); }
+        66%  { opacity: 0.12; transform: translate(-0.8px, 0.2px); }
+        66.5% { opacity: 0.2; transform: translate(-1.2px, 0.3px); }
+        67%  { opacity: 0.15; transform: translate(-0.8px, 0.2px); }
+        67.5% { opacity: 0.08; transform: translate(-0.4px, 0.1px); }
+        68%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-4 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        35%  { opacity: 0; transform: translate(0,0); }
+        36%  { opacity: 0.15; transform: translate(1px, -0.3px); }
+        36.5% { opacity: 0.25; transform: translate(1.5px, -0.5px); }
+        37%  { opacity: 0.3; transform: translate(2px, -0.5px); }
+        37.5% { opacity: 0.2; transform: translate(1.2px, -0.3px); }
+        38%  { opacity: 0.1; transform: translate(0.5px, -0.1px); }
+        38.5% { opacity: 0; transform: translate(0,0); }
+        65%  { opacity: 0; transform: translate(0,0); }
+        66%  { opacity: 0.12; transform: translate(0.8px, -0.2px); }
+        66.5% { opacity: 0.2; transform: translate(1.2px, -0.3px); }
+        67%  { opacity: 0.15; transform: translate(0.8px, -0.2px); }
+        67.5% { opacity: 0.08; transform: translate(0.4px, -0.1px); }
+        68%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.82; }
+        /* 快速过渡到variant-4特色 */
+        2%   { opacity: 0.79; }
+        3%   { opacity: 0.77; }
+        4%   { opacity: 0.75; }
+        /* 进入variant-4特色动画 */
+        5%   { opacity: 0.76; }
+        10%  { opacity: 0.78; }
+        15%  { opacity: 0.8;  }
+        20%  { opacity: 0.82; }
+        25%  { opacity: 0.83; }
+        30%  { opacity: 0.84; }
+        35%  { opacity: 0.85; }
+        40%  { opacity: 0.86; }
+        45%  { opacity: 0.85; }
+        50%  { opacity: 0.84; }
+        55%  { opacity: 0.82; }
+        60%  { opacity: 0.8;  }
+        65%  { opacity: 0.78; }
+        70%  { opacity: 0.76; }
+        75%  { opacity: 0.78; }
+        80%  { opacity: 0.8;  }
+        85%  { opacity: 0.78; }
+        90%  { opacity: 0.76; }
+        92%  { opacity: 0.76; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.78; }
+        96%  { opacity: 0.8;  }
+        98%  { opacity: 0.81; }
+        /* 回到标准状态 */
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-4 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        /* 快速过渡到variant-4特色 */
+        2%   { opacity: 0.58; transform: translate(-50%, -50%) scale(1.01); }
+        3%   { opacity: 0.57; transform: translate(-50%, -50%) scale(1.015); }
+        4%   { opacity: 0.55; transform: translate(-50%, -50%) scale(1.02); }
+        /* 进入variant-4特色动画 */
+        5%   { opacity: 0.57; transform: translate(-50%, -50%) scale(1.02); }
+        10%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.03); }
+        15%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.04); }
+        20%  { opacity: 0.65; transform: translate(-50%, -50%) scale(1.05); }
+        25%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.06); }
+        30%  { opacity: 0.7;  transform: translate(-50%, -50%) scale(1.07); }
+        35%  { opacity: 0.72; transform: translate(-50%, -50%) scale(1.08); }
+        40%  { opacity: 0.75; transform: translate(-50%, -50%) scale(1.08); }
+        45%  { opacity: 0.72; transform: translate(-50%, -50%) scale(1.07); }
+        50%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.06); }
+        55%  { opacity: 0.65; transform: translate(-50%, -50%) scale(1.05); }
+        60%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.04); }
+        65%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1.03); }
+        70%  { opacity: 0.52; transform: translate(-50%, -50%) scale(1.02); }
+        75%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1.02); }
+        80%  { opacity: 0.58; transform: translate(-50%, -50%) scale(1.03); }
+        85%  { opacity: 0.56; transform: translate(-50%, -50%) scale(1.02); }
+        90%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1.02); }
+        92%  { opacity: 0.55; transform: translate(-50%, -50%) scale(1.02); }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.57; transform: translate(-50%, -50%) scale(1.015); }
+        96%  { opacity: 0.58; transform: translate(-50%, -50%) scale(1.01); }
+        98%  { opacity: 0.59; transform: translate(-50%, -50%) scale(1.005); }
+        /* 回到标准状态 */
+        100% { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗    ███████╗
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ██╔════╝
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║       ███████╗
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║       ╚════██║
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║       ███████║
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝       ╚══════╝
+       酒吧微醺 - Bar Tipsy (温暖摇曳版)
+       特征：温暖稳定的光芒，轻微的摇曳感，偶尔的浪漫闪烁，酒醉后的慵懒
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-5 {
+        /* 从标准状态开始 */
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        /* 快速过渡到variant-5特色：温暖粉调 */
+        2%   { opacity: 0.96; stroke: #ffd8ec; }
+        3%   { opacity: 0.94; stroke: #ffd4ea; }
+        4%   { opacity: 0.92; stroke: #ffd0e8; }
+        /* 进入variant-5特色动画：温暖稳定，轻微摇曳 */
+        5%   { opacity: 0.93; stroke: #ffd2e9; }
+        6%   { opacity: 0.94; stroke: #ffd5ea; }
+        8%   { opacity: 0.93; stroke: #ffd2e9; }
+        10%  { opacity: 0.92; stroke: #ffd0e8; }
+        12%  { opacity: 0.93; stroke: #ffd3e9; }
+        14%  { opacity: 0.94; stroke: #ffd6ea; }
+        15%  { opacity: 0.95; stroke: #ffdaec; }
+        16%  { opacity: 0.96; stroke: #ffddee; }
+        18%  { opacity: 0.95; stroke: #ffdaec; }
+        20%  { opacity: 0.94; stroke: #ffd6ea; }
+        /* 微醺摇曳 */
+        22%  { opacity: 0.93; stroke: #ffd3e9; }
+        24%  { opacity: 0.92; stroke: #ffd0e8; }
+        25%  { opacity: 0.91; stroke: #ffcde6; }
+        26%  { opacity: 0.9;  stroke: #ffcae4; }
+        28%  { opacity: 0.91; stroke: #ffcde6; }
+        30%  { opacity: 0.92; stroke: #ffd0e8; }
+        /* 浪漫闪烁 */
+        32%  { opacity: 0.95; stroke: #ffdaec; }
+        33%  { opacity: 0.98; stroke: #ffe5f2; }
+        34%  { opacity: 1;    stroke: #fff0f8; }
+        35%  { opacity: 0.98; stroke: #ffe5f2; }
+        36%  { opacity: 0.95; stroke: #ffdaec; }
+        38%  { opacity: 0.93; stroke: #ffd2e9; }
+        40%  { opacity: 0.92; stroke: #ffd0e8; }
+        /* 稳定期 */
+        42%  { opacity: 0.93; stroke: #ffd2e9; }
+        44%  { opacity: 0.94; stroke: #ffd5ea; }
+        45%  { opacity: 0.93; stroke: #ffd2e9; }
+        46%  { opacity: 0.92; stroke: #ffd0e8; }
+        48%  { opacity: 0.91; stroke: #ffcde6; }
+        50%  { opacity: 0.92; stroke: #ffd0e8; }
+        /* 第二次摇曳 */
+        52%  { opacity: 0.9;  stroke: #ffcae4; }
+        54%  { opacity: 0.88; stroke: #ffc5e0; }
+        55%  { opacity: 0.86; stroke: #ffc0dc; }
+        56%  { opacity: 0.88; stroke: #ffc5e0; }
+        58%  { opacity: 0.9;  stroke: #ffcae4; }
+        60%  { opacity: 0.92; stroke: #ffd0e8; }
+        /* 慵懒回升 */
+        62%  { opacity: 0.93; stroke: #ffd2e9; }
+        64%  { opacity: 0.94; stroke: #ffd5ea; }
+        65%  { opacity: 0.95; stroke: #ffd8eb; }
+        66%  { opacity: 0.96; stroke: #ffdcee; }
+        68%  { opacity: 0.97; stroke: #ffe0f0; }
+        70%  { opacity: 0.98; stroke: #ffe5f2; }
+        /* 温暖高光 */
+        72%  { opacity: 0.99; stroke: #ffe8f4; }
+        74%  { opacity: 1;    stroke: #ffecf6; }
+        75%  { opacity: 1;    stroke: #fff0f8; }
+        76%  { opacity: 1;    stroke: #fff0f8; }
+        78%  { opacity: 0.99; stroke: #ffecf6; }
+        80%  { opacity: 0.98; stroke: #ffe8f4; }
+        /* 缓缓回落 */
+        82%  { opacity: 0.97; stroke: #ffe5f2; }
+        84%  { opacity: 0.96; stroke: #ffe0f0; }
+        85%  { opacity: 0.95; stroke: #ffdcee; }
+        86%  { opacity: 0.94; stroke: #ffd8eb; }
+        88%  { opacity: 0.93; stroke: #ffd5ea; }
+        90%  { opacity: 0.92; stroke: #ffd2e9; }
+        92%  { opacity: 0.93; stroke: #ffd3e9; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.95; stroke: #ffd8ec; }
+        96%  { opacity: 0.97; stroke: #ffdcf0; }
+        98%  { opacity: 0.99; stroke: #ffe0f3; }
+        /* 回到标准状态 */
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-5 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.9;  }
+        /* 快速过渡到variant-5特色 */
+        2%   { opacity: 0.88; }
+        3%   { opacity: 0.87; }
+        4%   { opacity: 0.85; }
+        /* 进入variant-5特色动画 */
+        5%   { opacity: 0.86; }
+        10%  { opacity: 0.85; }
+        15%  { opacity: 0.87; }
+        20%  { opacity: 0.85; }
+        25%  { opacity: 0.84; }
+        30%  { opacity: 0.85; }
+        34%  { opacity: 0.92; }
+        38%  { opacity: 0.86; }
+        42%  { opacity: 0.85; }
+        48%  { opacity: 0.84; }
+        55%  { opacity: 0.8;  }
+        60%  { opacity: 0.85; }
+        65%  { opacity: 0.88; }
+        70%  { opacity: 0.9;  }
+        75%  { opacity: 0.95; }
+        80%  { opacity: 0.9;  }
+        85%  { opacity: 0.88; }
+        90%  { opacity: 0.85; }
+        92%  { opacity: 0.86; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.87; }
+        96%  { opacity: 0.88; }
+        98%  { opacity: 0.89; }
+        /* 回到标准状态 */
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-5 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.7;  }
+        /* 快速过渡到variant-5特色 */
+        2%   { opacity: 0.69; }
+        3%   { opacity: 0.685;}
+        4%   { opacity: 0.68; }
+        /* 进入variant-5特色动画 */
+        5%   { opacity: 0.7;  }
+        10%  { opacity: 0.68; }
+        15%  { opacity: 0.7;  }
+        20%  { opacity: 0.68; }
+        25%  { opacity: 0.66; }
+        30%  { opacity: 0.68; }
+        34%  { opacity: 0.78; }
+        38%  { opacity: 0.7;  }
+        42%  { opacity: 0.68; }
+        48%  { opacity: 0.65; }
+        55%  { opacity: 0.6;  }
+        60%  { opacity: 0.68; }
+        65%  { opacity: 0.72; }
+        70%  { opacity: 0.75; }
+        75%  { opacity: 0.82; }
+        80%  { opacity: 0.75; }
+        85%  { opacity: 0.72; }
+        90%  { opacity: 0.68; }
+        92%  { opacity: 0.69; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.69; }
+        96%  { opacity: 0.695;}
+        98%  { opacity: 0.698;}
+        /* 回到标准状态 */
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-5 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        /* 快速过渡到variant-5特色：温暖粉色氛围 */
+        3%   { opacity: 0.54; filter: drop-shadow(0 0 11px rgba(255,90,195,0.62)) drop-shadow(0 0 42px rgba(200,50,200,0.45)); }
+        4%   { opacity: 0.58; filter: drop-shadow(0 0 12px rgba(255,180,220,0.65)) drop-shadow(0 0 45px rgba(255,100,180,0.4)); }
+        /* 进入variant-5特色动画 */
+        10%  { opacity: 0.6;  }
+        20%  { opacity: 0.58; }
+        30%  { opacity: 0.6;  }
+        34%  { opacity: 0.72; filter: drop-shadow(0 0 15px rgba(255,200,240,0.75)) drop-shadow(0 0 55px rgba(255,120,200,0.5)); }
+        40%  { opacity: 0.6;  }
+        50%  { opacity: 0.55; }
+        60%  { opacity: 0.58; }
+        70%  { opacity: 0.65; }
+        75%  { opacity: 0.75; filter: drop-shadow(0 0 18px rgba(255,220,250,0.8)) drop-shadow(0 0 60px rgba(255,150,220,0.55)); }
+        80%  { opacity: 0.65; }
+        90%  { opacity: 0.58; }
+        92%  { opacity: 0.56; filter: drop-shadow(0 0 12px rgba(255,150,210,0.63)) drop-shadow(0 0 43px rgba(220,70,200,0.47)); }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.54; filter: drop-shadow(0 0 11px rgba(255,80,190,0.61)) drop-shadow(0 0 41px rgba(180,40,210,0.48)); }
+        97%  { opacity: 0.52; filter: drop-shadow(0 0 10.5px rgba(255,40,180,0.605)) drop-shadow(0 0 40.5px rgba(165,20,215,0.49)); }
+        /* 回到标准状态 */
+        100% { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-5 {
+        /* 酒吧氛围不需要glitch */
+        0%   { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-5 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-5 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.82; }
+        /* 快速过渡到variant-5特色 */
+        2%   { opacity: 0.8;  }
+        3%   { opacity: 0.79; }
+        4%   { opacity: 0.78; }
+        /* 进入variant-5特色动画 */
+        5%   { opacity: 0.79; }
+        10%  { opacity: 0.78; }
+        15%  { opacity: 0.8;  }
+        20%  { opacity: 0.78; }
+        25%  { opacity: 0.77; }
+        30%  { opacity: 0.78; }
+        34%  { opacity: 0.82; }
+        40%  { opacity: 0.78; }
+        50%  { opacity: 0.76; }
+        60%  { opacity: 0.78; }
+        70%  { opacity: 0.8;  }
+        75%  { opacity: 0.84; }
+        80%  { opacity: 0.8;  }
+        90%  { opacity: 0.78; }
+        92%  { opacity: 0.79; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.8;  }
+        96%  { opacity: 0.81; }
+        98%  { opacity: 0.815;}
+        /* 回到标准状态 */
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-5 {
+        0%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        5%   { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        10%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        15%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        20%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        25%  { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        30%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        34%  { opacity: 0.72; transform: translate(-50%, -50%) scale(1.05); }
+        40%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.01); }
+        50%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.98); }
+        60%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        70%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.03); }
+        75%  { opacity: 0.78; transform: translate(-50%, -50%) scale(1.08); }
+        80%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.03); }
+        90%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        100% { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================================================================================
+       ██╗   ██╗ █████╗ ██████╗ ██╗ █████╗ ███╗   ██╗████████╗     ██████╗ 
+       ██║   ██║██╔══██╗██╔══██╗██║██╔══██╗████╗  ██║╚══██╔══╝    ██╔════╝ 
+       ██║   ██║███████║██████╔╝██║███████║██╔██╗ ██║   ██║       ███████╗ 
+       ╚██╗ ██╔╝██╔══██║██╔══██╗██║██╔══██║██║╚██╗██║   ██║       ██╔═══██╗
+        ╚████╔╝ ██║  ██║██║  ██║██║██║  ██║██║ ╚████║   ██║       ╚██████╔╝
+         ╚═══╝  ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝        ╚═════╝ 
+       午夜梦回 - Midnight Reverie
+       特征：深邃神秘，冷紫调，梦境般的起伏，偶尔迷离的glitch
+       =================================================================================== */
+
+    @keyframes voltage-flicker-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 1;    stroke: #ffe0f5; }
+        /* 快速过渡到variant-6特色：深邃冷紫 */
+        2%   { opacity: 0.9;  stroke: #ecd0fa; }
+        3%   { opacity: 0.85; stroke: #e0c8ff; }
+        4%   { opacity: 0.8;  stroke: #d8c0ff; }
+        /* 进入variant-6特色动画：深邃冷紫开始 */
+        5%   { opacity: 0.78; stroke: #d5bbff; }
+        6%   { opacity: 0.72; stroke: #ccaaff; }
+        8%   { opacity: 0.7;  stroke: #c8a5ff; }
+        10%  { opacity: 0.68; stroke: #c4a0ff; }
+        /* 深入梦境 */
+        12%  { opacity: 0.65; stroke: #c09aff; }
+        14%  { opacity: 0.62; stroke: #bc95ff; }
+        15%  { opacity: 0.6;  stroke: #b890ff; }
+        16%  { opacity: 0.58; stroke: #b48bff; }
+        18%  { opacity: 0.55; stroke: #b085ff; }
+        20%  { opacity: 0.52; stroke: #ac80ff; }
+        /* 梦境最深处 */
+        22%  { opacity: 0.5;  stroke: #a87aff; }
+        24%  { opacity: 0.48; stroke: #a475ff; }
+        25%  { opacity: 0.46; stroke: #a070ff; }
+        26%  { opacity: 0.45; stroke: #9c6cff; }
+        28%  { opacity: 0.44; stroke: #9868ff; }
+        30%  { opacity: 0.43; stroke: #9565ff; }
+        32%  { opacity: 0.42; stroke: #9262ff; }
+        34%  { opacity: 0.42; stroke: #9060ff; }
+        35%  { opacity: 0.42; stroke: #8e5eff; }
+        /* 迷离闪烁 */
+        36%  { opacity: 0.55; stroke: #a878ff; }
+        37%  { opacity: 0.7;  stroke: #c0a0ff; }
+        38%  { opacity: 0.85; stroke: #d8c8ff; }
+        39%  { opacity: 0.7;  stroke: #c0a0ff; }
+        40%  { opacity: 0.5;  stroke: #9c70ff; }
+        42%  { opacity: 0.45; stroke: #9468ff; }
+        44%  { opacity: 0.43; stroke: #9060ff; }
+        45%  { opacity: 0.44; stroke: #9262ff; }
+        /* 缓慢上浮 */
+        48%  { opacity: 0.46; stroke: #9668ff; }
+        50%  { opacity: 0.48; stroke: #9a6eff; }
+        52%  { opacity: 0.5;  stroke: #9e74ff; }
+        54%  { opacity: 0.52; stroke: #a27aff; }
+        55%  { opacity: 0.55; stroke: #a680ff; }
+        56%  { opacity: 0.58; stroke: #aa88ff; }
+        58%  { opacity: 0.6;  stroke: #ae90ff; }
+        60%  { opacity: 0.62; stroke: #b298ff; }
+        /* 第二次梦境波动 */
+        62%  { opacity: 0.58; stroke: #ae90ff; }
+        64%  { opacity: 0.52; stroke: #a680ff; }
+        65%  { opacity: 0.48; stroke: #9e74ff; }
+        66%  { opacity: 0.52; stroke: #a680ff; }
+        68%  { opacity: 0.58; stroke: #ae90ff; }
+        70%  { opacity: 0.65; stroke: #b8a0ff; }
+        /* 渐渐清醒 */
+        72%  { opacity: 0.68; stroke: #bca8ff; }
+        74%  { opacity: 0.72; stroke: #c0b0ff; }
+        75%  { opacity: 0.75; stroke: #c5b8ff; }
+        76%  { opacity: 0.78; stroke: #cac0ff; }
+        78%  { opacity: 0.8;  stroke: #cfc8ff; }
+        80%  { opacity: 0.82; stroke: #d4d0ff; }
+        /* 梦醒时分的清澈 */
+        82%  { opacity: 0.85; stroke: #d8d5ff; }
+        84%  { opacity: 0.88; stroke: #dcdaff; }
+        85%  { opacity: 0.9;  stroke: #e0dfff; }
+        86%  { opacity: 0.88; stroke: #dcdaff; }
+        88%  { opacity: 0.85; stroke: #d8d5ff; }
+        90%  { opacity: 0.82; stroke: #d4d0ff; }
+        /* 重新入梦 */
+        92%  { opacity: 0.8;  stroke: #d0c8ff; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.85; stroke: #d8ceff; }
+        96%  { opacity: 0.9;  stroke: #e4d6fa; }
+        98%  { opacity: 0.95; stroke: #f0dbf7; }
+        /* 回到标准状态 */
+        100% { opacity: 1;    stroke: #ffe0f5; }
+    }
+
+    @keyframes inner-glow-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.9;  }
+        /* 快速过渡到variant-6特色 */
+        2%   { opacity: 0.83; }
+        3%   { opacity: 0.79; }
+        4%   { opacity: 0.75; }
+        /* 进入variant-6特色动画 */
+        5%   { opacity: 0.7;  }
+        10%  { opacity: 0.62; }
+        15%  { opacity: 0.55; }
+        20%  { opacity: 0.48; }
+        25%  { opacity: 0.42; }
+        30%  { opacity: 0.38; }
+        35%  { opacity: 0.35; }
+        37%  { opacity: 0.65; }
+        38%  { opacity: 0.8;  }
+        40%  { opacity: 0.45; }
+        45%  { opacity: 0.38; }
+        50%  { opacity: 0.42; }
+        55%  { opacity: 0.5;  }
+        60%  { opacity: 0.55; }
+        65%  { opacity: 0.45; }
+        70%  { opacity: 0.58; }
+        75%  { opacity: 0.68; }
+        80%  { opacity: 0.75; }
+        85%  { opacity: 0.82; }
+        90%  { opacity: 0.78; }
+        92%  { opacity: 0.77; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.8;  }
+        96%  { opacity: 0.85; }
+        98%  { opacity: 0.88; }
+        /* 回到标准状态 */
+        100% { opacity: 0.9;  }
+    }
+
+    @keyframes outer-glow-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.7;  }
+        /* 快速过渡到variant-6特色 */
+        2%   { opacity: 0.66; }
+        3%   { opacity: 0.63; }
+        4%   { opacity: 0.6;  }
+        /* 进入variant-6特色动画 */
+        5%   { opacity: 0.55; }
+        10%  { opacity: 0.5;  }
+        15%  { opacity: 0.42; }
+        20%  { opacity: 0.35; }
+        25%  { opacity: 0.3;  }
+        30%  { opacity: 0.25; }
+        35%  { opacity: 0.22; }
+        37%  { opacity: 0.5;  }
+        38%  { opacity: 0.7;  }
+        40%  { opacity: 0.35; }
+        45%  { opacity: 0.25; }
+        50%  { opacity: 0.3;  }
+        55%  { opacity: 0.38; }
+        60%  { opacity: 0.42; }
+        65%  { opacity: 0.35; }
+        70%  { opacity: 0.48; }
+        75%  { opacity: 0.55; }
+        80%  { opacity: 0.62; }
+        85%  { opacity: 0.68; }
+        90%  { opacity: 0.65; }
+        92%  { opacity: 0.64; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.66; }
+        96%  { opacity: 0.68; }
+        98%  { opacity: 0.69; }
+        /* 回到标准状态 */
+        100% { opacity: 0.7;  }
+    }
+
+    @keyframes atmosphere-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+        /* 快速过渡到variant-6特色：深邃紫色氛围 */
+        3%   { opacity: 0.53; filter: drop-shadow(0 0 11px rgba(220,70,200,0.58)) drop-shadow(0 0 45px rgba(150,40,220,0.48)); }
+        4%   { opacity: 0.55; filter: drop-shadow(0 0 12px rgba(180,140,255,0.6)) drop-shadow(0 0 50px rgba(140,80,220,0.45)); }
+        /* 进入variant-6特色动画 */
+        10%  { opacity: 0.45; filter: drop-shadow(0 0 10px rgba(160,120,255,0.5)) drop-shadow(0 0 45px rgba(120,60,200,0.4)); }
+        20%  { opacity: 0.35; filter: drop-shadow(0 0 8px rgba(140,100,255,0.4)) drop-shadow(0 0 40px rgba(100,40,180,0.35)); }
+        30%  { opacity: 0.28; filter: drop-shadow(0 0 6px rgba(130,90,255,0.35)) drop-shadow(0 0 35px rgba(90,30,160,0.3)); }
+        35%  { opacity: 0.25; }
+        37%  { opacity: 0.55; filter: drop-shadow(0 0 15px rgba(200,160,255,0.7)) drop-shadow(0 0 55px rgba(160,100,240,0.5)); }
+        38%  { opacity: 0.7;  filter: drop-shadow(0 0 18px rgba(220,180,255,0.8)) drop-shadow(0 0 60px rgba(180,120,250,0.6)); }
+        40%  { opacity: 0.4;  }
+        50%  { opacity: 0.32; }
+        60%  { opacity: 0.38; }
+        70%  { opacity: 0.48; }
+        80%  { opacity: 0.55; }
+        85%  { opacity: 0.62; filter: drop-shadow(0 0 14px rgba(200,180,255,0.65)) drop-shadow(0 0 52px rgba(160,140,240,0.48)); }
+        90%  { opacity: 0.58; }
+        92%  { opacity: 0.56; filter: drop-shadow(0 0 12px rgba(190,120,230,0.62)) drop-shadow(0 0 48px rgba(150,70,225,0.47)); }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.54; filter: drop-shadow(0 0 11px rgba(220,80,210,0.61)) drop-shadow(0 0 44px rgba(150,50,222,0.49)); }
+        97%  { opacity: 0.52; filter: drop-shadow(0 0 10.5px rgba(240,40,190,0.605)) drop-shadow(0 0 42px rgba(150,25,220,0.495)); }
+        /* 回到标准状态 */
+        100% { opacity: 0.5;  filter: drop-shadow(0 0 10px rgba(255,0,170,0.6)) drop-shadow(0 0 40px rgba(150,0,220,0.5)); }
+    }
+
+    @keyframes glitch-red-variant-6 {
+        /* 梦境中的迷离glitch */
+        0%   { opacity: 0; transform: translate(0,0); }
+        34%  { opacity: 0; transform: translate(0,0); }
+        35%  { opacity: 0.2; transform: translate(-1px, 0.5px); }
+        35.5% { opacity: 0.35; transform: translate(-2px, 1px); }
+        36%  { opacity: 0.5; transform: translate(-3px, 1.5px); }
+        36.5% { opacity: 0.65; transform: translate(-4px, 2px); }
+        37%  { opacity: 0.8; transform: translate(-5px, 2.5px); }
+        37.5% { opacity: 0.65; transform: translate(-4px, 2px); }
+        38%  { opacity: 0.5; transform: translate(-3px, 1.5px); }
+        38.5% { opacity: 0.3; transform: translate(-1.5px, 0.8px); }
+        39%  { opacity: 0.15; transform: translate(-0.5px, 0.3px); }
+        40%  { opacity: 0; transform: translate(0,0); }
+        62%  { opacity: 0; transform: translate(0,0); }
+        63%  { opacity: 0.15; transform: translate(-0.8px, 0.4px); }
+        63.5% { opacity: 0.25; transform: translate(-1.2px, 0.6px); }
+        64%  { opacity: 0.35; transform: translate(-2px, 1px); }
+        64.5% { opacity: 0.25; transform: translate(-1.2px, 0.6px); }
+        65%  { opacity: 0.15; transform: translate(-0.8px, 0.4px); }
+        65.5% { opacity: 0.08; transform: translate(-0.4px, 0.2px); }
+        66%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes glitch-cyan-variant-6 {
+        0%   { opacity: 0; transform: translate(0,0); }
+        34%  { opacity: 0; transform: translate(0,0); }
+        35%  { opacity: 0.2; transform: translate(1px, -0.5px); }
+        35.5% { opacity: 0.35; transform: translate(2px, -1px); }
+        36%  { opacity: 0.5; transform: translate(3px, -1.5px); }
+        36.5% { opacity: 0.65; transform: translate(4px, -2px); }
+        37%  { opacity: 0.8; transform: translate(5px, -2.5px); }
+        37.5% { opacity: 0.65; transform: translate(4px, -2px); }
+        38%  { opacity: 0.5; transform: translate(3px, -1.5px); }
+        38.5% { opacity: 0.3; transform: translate(1.5px, -0.8px); }
+        39%  { opacity: 0.15; transform: translate(0.5px, -0.3px); }
+        40%  { opacity: 0; transform: translate(0,0); }
+        62%  { opacity: 0; transform: translate(0,0); }
+        63%  { opacity: 0.15; transform: translate(0.8px, -0.4px); }
+        63.5% { opacity: 0.25; transform: translate(1.2px, -0.6px); }
+        64%  { opacity: 0.35; transform: translate(2px, -1px); }
+        64.5% { opacity: 0.25; transform: translate(1.2px, -0.6px); }
+        65%  { opacity: 0.15; transform: translate(0.8px, -0.4px); }
+        65.5% { opacity: 0.08; transform: translate(0.4px, -0.2px); }
+        66%  { opacity: 0; transform: translate(0,0); }
+        100% { opacity: 0; transform: translate(0,0); }
+    }
+
+    @keyframes mask-breath-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.82; }
+        /* 快速过渡到variant-6特色 */
+        2%   { opacity: 0.79; }
+        3%   { opacity: 0.77; }
+        4%   { opacity: 0.75; }
+        /* 进入variant-6特色动画 */
+        5%   { opacity: 0.72; }
+        10%  { opacity: 0.68; }
+        15%  { opacity: 0.65; }
+        20%  { opacity: 0.62; }
+        25%  { opacity: 0.6;  }
+        30%  { opacity: 0.58; }
+        35%  { opacity: 0.56; }
+        37%  { opacity: 0.7;  }
+        38%  { opacity: 0.78; }
+        40%  { opacity: 0.62; }
+        50%  { opacity: 0.58; }
+        60%  { opacity: 0.62; }
+        70%  { opacity: 0.68; }
+        75%  { opacity: 0.72; }
+        80%  { opacity: 0.76; }
+        85%  { opacity: 0.8;  }
+        90%  { opacity: 0.78; }
+        92%  { opacity: 0.77; }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.78; }
+        96%  { opacity: 0.8;  }
+        98%  { opacity: 0.81; }
+        /* 回到标准状态 */
+        100% { opacity: 0.82; }
+    }
+
+    @keyframes mega-glow-variant-6 {
+        /* 从标准状态开始 */
+        0%   { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+        /* 快速过渡到variant-6特色 */
+        2%   { opacity: 0.58; transform: translate(-50%, -50%) scale(0.99); }
+        3%   { opacity: 0.57; transform: translate(-50%, -50%) scale(0.985); }
+        4%   { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+        /* 进入variant-6特色动画 */
+        5%   { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.98); }
+        10%  { opacity: 0.42; transform: translate(-50%, -50%) scale(0.95); }
+        15%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.92); }
+        20%  { opacity: 0.28; transform: translate(-50%, -50%) scale(0.88); }
+        25%  { opacity: 0.22; transform: translate(-50%, -50%) scale(0.85); }
+        30%  { opacity: 0.18; transform: translate(-50%, -50%) scale(0.82); }
+        35%  { opacity: 0.15; transform: translate(-50%, -50%) scale(0.8); }
+        37%  { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.95); }
+        38%  { opacity: 0.72; transform: translate(-50%, -50%) scale(1.05); }
+        40%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.88); }
+        50%  { opacity: 0.25; transform: translate(-50%, -50%) scale(0.84); }
+        60%  { opacity: 0.35; transform: translate(-50%, -50%) scale(0.88); }
+        70%  { opacity: 0.48; transform: translate(-50%, -50%) scale(0.94); }
+        75%  { opacity: 0.55; transform: translate(-50%, -50%) scale(0.98); }
+        80%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.02); }
+        85%  { opacity: 0.68; transform: translate(-50%, -50%) scale(1.05); }
+        90%  { opacity: 0.62; transform: translate(-50%, -50%) scale(1.02); }
+        92%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.01); }
+        /* 回归标准状态的过渡 */
+        94%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.005); }
+        96%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.002); }
+        98%  { opacity: 0.6;  transform: translate(-50%, -50%) scale(1.001); }
+        /* 回到标准状态 */
+        100% { opacity: 0.6;  transform: translate(-50%, -50%) scale(1); }
+    }
+
+
+    /* ==================== 变体应用选择器 ==================== */
+
+    .flicker-variant-1 .layer-core { animation: voltage-flicker-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 #neon-bg-layer::before { animation: mask-breath-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 .neon-logo-wrapper::before { animation: mega-glow-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 .layer-atmosphere { animation: atmosphere-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 .layer-inner-glow { animation: inner-glow-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 .layer-outer-glow { animation: outer-glow-variant-1 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-1 .layer-glitch-red { animation: glitch-red-variant-1 10s linear; animation-fill-mode: forwards; }
+    .flicker-variant-1 .layer-glitch-cyan { animation: glitch-cyan-variant-1 10s linear; animation-fill-mode: forwards; }
+
+    .flicker-variant-2 .layer-core { animation: voltage-flicker-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 #neon-bg-layer::before { animation: mask-breath-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 .neon-logo-wrapper::before { animation: mega-glow-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 .layer-atmosphere { animation: atmosphere-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 .layer-inner-glow { animation: inner-glow-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 .layer-outer-glow { animation: outer-glow-variant-2 10s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-2 .layer-glitch-red { animation: glitch-red-variant-2 10s linear; animation-fill-mode: forwards; }
+    .flicker-variant-2 .layer-glitch-cyan { animation: glitch-cyan-variant-2 10s linear; animation-fill-mode: forwards; }
+
+    .flicker-variant-3 .layer-core { animation: voltage-flicker-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 #neon-bg-layer::before { animation: mask-breath-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 .neon-logo-wrapper::before { animation: mega-glow-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 .layer-atmosphere { animation: atmosphere-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 .layer-inner-glow { animation: inner-glow-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 .layer-outer-glow { animation: outer-glow-variant-3 12s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-3 .layer-glitch-red { animation: glitch-red-variant-3 12s linear; animation-fill-mode: forwards; }
+    .flicker-variant-3 .layer-glitch-cyan { animation: glitch-cyan-variant-3 12s linear; animation-fill-mode: forwards; }
+
+    .flicker-variant-4 .layer-core { animation: voltage-flicker-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 #neon-bg-layer::before { animation: mask-breath-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 .neon-logo-wrapper::before { animation: mega-glow-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 .layer-atmosphere { animation: atmosphere-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 .layer-inner-glow { animation: inner-glow-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 .layer-outer-glow { animation: outer-glow-variant-4 14s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-4 .layer-glitch-red { animation: glitch-red-variant-4 14s linear; animation-fill-mode: forwards; }
+    .flicker-variant-4 .layer-glitch-cyan { animation: glitch-cyan-variant-4 14s linear; animation-fill-mode: forwards; }
+
+    .flicker-variant-5 .layer-core { animation: voltage-flicker-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 #neon-bg-layer::before { animation: mask-breath-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 .neon-logo-wrapper::before { animation: mega-glow-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 .layer-atmosphere { animation: atmosphere-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 .layer-inner-glow { animation: inner-glow-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 .layer-outer-glow { animation: outer-glow-variant-5 11s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-5 .layer-glitch-red { animation: glitch-red-variant-5 11s linear; animation-fill-mode: forwards; }
+    .flicker-variant-5 .layer-glitch-cyan { animation: glitch-cyan-variant-5 11s linear; animation-fill-mode: forwards; }
+
+    .flicker-variant-6 .layer-core { animation: voltage-flicker-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 #neon-bg-layer::before { animation: mask-breath-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 .neon-logo-wrapper::before { animation: mega-glow-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 .layer-atmosphere { animation: atmosphere-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 .layer-inner-glow { animation: inner-glow-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 .layer-outer-glow { animation: outer-glow-variant-6 13s ease-in-out; animation-fill-mode: forwards; }
+    .flicker-variant-6 .layer-glitch-red { animation: glitch-red-variant-6 13s linear; animation-fill-mode: forwards; }
+    .flicker-variant-6 .layer-glitch-cyan { animation: glitch-cyan-variant-6 13s linear; animation-fill-mode: forwards; }
+
+    /* ================== CRT 特效 ================== */
+
+    .neon-scanlines {
+        position: fixed;
+        inset: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 2px,
+            rgba(0, 0, 0, 0.12) 2px,
+            rgba(0, 0, 0, 0.12) 4px
+        );
+        pointer-events: none;
+        z-index: 100;
+    }
+
+    /* ==================== Hope UI 颜色系统覆盖 ==================== */
+
+    .hope-ui-light,
+    .hope-ui-dark {
+        --hope-colors-neutral12: #ffffff !important;
+        --hope-colors-neutral11: #e0e0e0 !important;
+        --hope-colors-primary11: #ffe0f5 !important;
+        --hope-colors-accent11: #ffe0f5 !important;
+        color: #ffffff !important;
+    }
+
+    .hope-c-PJLV-ikJQsXT-css {
+        background: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.08) 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    /* ==================== 色温微呼吸动画 ==================== */
+    @keyframes ambient-temperature {
+        0%, 100% { filter: saturate(1) brightness(1); }
+        50% { filter: saturate(0.92) brightness(0.95) hue-rotate(-5deg); }
+    }
+
+    /* ==================== 静态模式：只播放一次后停止 ==================== */
+    .neon-static #neon-stage-container,
+    .neon-static .neon-logo-wrapper::after,
+    .neon-static .lens-flare,
+    .neon-static .dust {
+        animation-iteration-count: 1 !important;
+        animation-fill-mode: both !important;
+    }
+</style>
+
+<script>
+    // 强制切换到 Dark 模式
+    (function forceDarkMode() {
+        try {
+            localStorage.setItem('hope-ui-color-mode', 'dark');
+        } catch (e) {
+            console.warn('无法设置 localStorage:', e);
+        }
+
+        function switchToDark() {
+            const html = document.documentElement;
+            const body = document.body;
+
+            [html, body].forEach(el => {
+                if (el.classList.contains('hope-ui-light')) {
+                    el.classList.remove('hope-ui-light');
+                }
+                if (!el.classList.contains('hope-ui-dark')) {
+                    el.classList.add('hope-ui-dark');
+                }
+            });
+        }
+
+        switchToDark();
+
+        const observer = new MutationObserver(switchToDark);
+
+        if (document.documentElement) {
+            observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+        }
+        if (document.body) {
+            observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        }
+    })();
+
+    // 注入霓虹灯背景舞台
+    document.addEventListener('DOMContentLoaded', function() {
+        const stageContainer = document.createElement('div');
+        stageContainer.id = 'neon-stage-container';
+
+        const bgLayer = document.createElement('div');
+        bgLayer.id = 'neon-bg-layer';
+        stageContainer.appendChild(bgLayer);
+
+        // 优化：预加载背景图片并淡入，防止突兀切换
+        try {
+            const style = getComputedStyle(document.documentElement);
+            const bgUrlRaw = style.getPropertyValue('--bg-image-url').trim();
+            const urlMatch = bgUrlRaw.match(/url\(['"]?(.*?)['"]?\)/);
+            
+            if (urlMatch && urlMatch[1]) {
+                const img = new Image();
+                
+                const fadeIn = () => {
+                    bgLayer.style.opacity = '1';
+                };
+
+                img.onload = fadeIn;
+                img.onerror = fadeIn; // 即使失败也显示（可能是透明或背景色），避免一直 opacity 0
+                img.src = urlMatch[1];
+                
+                if (img.complete) {
+                    fadeIn();
+                }
+            } else {
+                bgLayer.style.opacity = '1';
+            }
+        } catch (e) {
+            console.warn('Background preload failed:', e);
+            bgLayer.style.opacity = '1';
+        }
+
+        const logoWrapper = document.createElement('div');
+        logoWrapper.className = 'neon-logo-wrapper';
+        logoWrapper.innerHTML = `
+            <div class="lens-flare"></div>
+            <svg class="neon-master-svg" viewBox="0 0 560 210" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <g id="midnight-logo-path">
+                        <path fill="none" stroke-linecap="round" stroke-linejoin="round"
+                            d="M 66.611 119.482 L 66.562 119.53 Q 66.22 120.165 65.561 120.409 Q 64.902 120.653 64.218 120.434 Q 63.534 120.214 62.9 119.775 Q 62.265 119.335 61.948 118.603 Q 61.63 117.87 61.777 117.089 Q 62.216 114.843 62.9 110.351 Q 63.437 106.835 64.487 99.828 Q 65.536 92.821 66.074 89.306 Q 67.685 78.222 68.271 75.439 Q 68.661 73.583 70.419 73.876 Q 72.031 74.169 72.812 75.585 Q 73.154 76.366 73.056 77.148 Q 72.861 78.271 72.543 80.492 Q 72.226 82.714 72.177 82.909 Q 70.077 97.704 69.199 103.612 Q 67.831 113.036 67.148 117.04 Q 68.368 114.55 72.324 106.835 Q 76.279 99.12 78.329 94.872 Q 79.355 92.773 81.479 88.598 Q 83.603 84.423 84.628 82.323 Q 86.777 77.831 87.997 75.976 Q 89.511 73.681 91.171 73.876 Q 91.513 73.925 92.001 74.169 Q 93.954 74.267 94.54 76.073 Q 94.784 76.757 94.784 77.734 Q 94.784 78.71 94.711 79.247 Q 94.638 79.784 94.394 81.103 Q 94.15 82.421 94.101 82.568 Q 93.564 85.741 92.88 89.281 Q 92.197 92.821 91.318 97.192 Q 90.439 101.562 89.999 103.857 Q 88.486 111.669 88.144 113.769 Q 87.851 115.38 87.704 117.04 L 87.704 117.187 L 87.704 117.577 Q 87.802 117.773 87.802 117.87 Q 89.804 113.573 93.613 105.81 Q 97.421 98.046 98.74 95.312 Q 100.497 91.601 105.185 82.421 Q 107.529 77.782 108.7 76.073 Q 110.409 73.681 112.118 73.876 Q 112.509 73.925 113.095 74.218 Q 114.853 74.364 115.536 76.073 Q 116.22 77.831 115.683 81.542 Q 115.341 84.081 114.169 89.159 Q 113.73 91.064 112.826 94.53 Q 111.923 97.997 111.63 99.218 Q 111.044 102.099 110.556 105.907 Q 110.312 108.837 110.312 109.472 Q 110.312 113.183 110.947 115.136 Q 111.581 116.991 112.46 117.528 Q 114.169 118.554 116.659 115.38 Q 118.515 112.646 120.004 109.643 Q 121.493 106.64 123.52 101.659 Q 125.546 96.679 126.034 95.507 Q 126.132 95.36 126.279 95.36 Q 126.425 95.36 126.547 95.507 Q 126.669 95.653 126.62 95.8 Q 124.423 102.636 121.054 110.058 Q 118.759 115.234 116.611 117.919 Q 115.097 119.872 113.339 120.287 Q 111.581 120.702 109.579 119.14 Q 106.015 116.015 106.259 106.591 Q 106.454 99.999 108.945 88.28 Q 109.14 87.401 109.482 85.888 Q 109.824 84.374 110.092 83.105 Q 110.361 81.835 110.556 80.712 Q 110.849 78.954 110.898 78.808 Q 110.312 79.394 110.068 79.687 Q 108.212 81.884 105.38 86.523 Q 102.499 91.308 99.57 96.801 Q 96.64 102.294 93.075 109.228 Q 89.511 116.161 87.607 119.726 Q 87.558 119.823 87.46 119.823 Q 87.411 119.872 87.314 120.019 Q 85.849 121.435 83.798 119.677 Q 83.261 119.237 82.992 118.627 Q 82.724 118.017 82.699 117.089 Q 82.675 116.161 82.724 115.649 Q 82.773 115.136 82.944 114.013 Q 83.115 112.89 83.115 112.743 Q 83.896 106.884 87.118 91.259 Q 87.216 90.771 87.997 86.913 Q 88.779 83.056 89.169 81.054 Q 89.218 80.859 89.267 80.419 Q 89.316 79.98 89.365 79.735 Q 87.558 81.933 84.872 86.474 Q 81.113 92.773 74.667 104.687 Q 68.222 116.601 66.611 119.482 Z M 125.204 119.482 L 125.156 119.53 Q 124.814 120.165 124.155 120.409 Q 123.495 120.653 122.812 120.434 Q 122.128 120.214 121.493 119.775 Q 120.859 119.335 120.541 118.603 Q 120.224 117.87 120.37 117.089 Q 120.81 114.843 121.493 110.351 Q 122.031 106.835 123.08 99.828 Q 124.13 92.821 124.667 89.306 Q 126.279 78.222 126.865 75.439 Q 127.255 73.583 129.013 73.876 Q 130.624 74.169 131.406 75.585 Q 131.747 76.366 131.65 77.148 Q 131.454 78.271 131.137 80.492 Q 130.82 82.714 130.771 82.909 Q 128.671 97.704 127.792 103.612 Q 126.425 113.036 125.741 117.04 Q 126.962 114.55 130.917 106.835 Q 134.872 99.12 136.923 94.872 Q 137.949 92.773 140.073 88.598 Q 142.197 84.423 143.222 82.323 Q 145.37 77.831 146.591 75.976 Q 148.105 73.681 149.765 73.876 Q 150.107 73.925 150.595 74.169 Q 152.548 74.267 153.134 76.073 Q 153.378 76.757 153.378 77.734 Q 153.378 78.71 153.305 79.247 Q 153.232 79.784 152.988 81.103 Q 152.743 82.421 152.695 82.568 Q 152.157 85.741 151.474 89.281 Q 150.79 92.821 149.911 97.192 Q 149.032 101.562 148.593 103.857 Q 147.079 111.669 146.738 113.769 Q 146.445 115.38 146.298 117.04 L 146.298 117.187 L 146.298 117.577 Q 146.396 117.773 146.396 117.87 Q 148.398 113.573 152.206 105.81 Q 156.015 98.046 157.333 95.312 Q 159.091 91.601 163.779 82.421 Q 166.122 77.782 167.294 76.073 Q 169.003 73.681 170.712 73.876 Q 171.103 73.925 171.689 74.218 Q 173.447 74.364 174.13 76.073 Q 174.814 77.831 174.277 81.542 Q 173.935 84.081 172.763 89.159 Q 172.324 91.064 171.42 94.53 Q 170.517 97.997 170.224 99.218 Q 169.638 102.099 169.15 105.907 Q 168.906 108.837 168.906 109.472 Q 168.906 113.183 169.54 115.136 Q 170.175 116.991 171.054 117.528 Q 172.763 118.554 175.253 115.38 Q 177.109 112.646 178.598 109.643 Q 180.087 106.64 182.114 101.659 Q 184.14 96.679 184.628 95.507 Q 184.726 95.36 184.872 95.36 Q 185.019 95.36 185.141 95.507 Q 185.263 95.653 185.214 95.8 Q 183.017 102.636 179.648 110.058 Q 177.353 115.234 175.204 117.919 Q 173.691 119.872 171.933 120.287 Q 170.175 120.702 168.173 119.14 Q 164.609 116.015 164.853 106.591 Q 165.048 99.999 167.538 88.28 Q 167.734 87.401 168.075 85.888 Q 168.417 84.374 168.686 83.105 Q 168.954 81.835 169.15 80.712 Q 169.443 78.954 169.491 78.808 Q 168.906 79.394 168.661 79.687 Q 166.806 81.884 163.974 86.523 Q 161.093 91.308 158.163 96.801 Q 155.234 102.294 151.669 109.228 Q 148.105 116.161 146.2 119.726 Q 146.152 119.823 146.054 119.823 Q 146.005 119.872 145.907 120.019 Q 144.443 121.435 142.392 119.677 Q 141.855 119.237 141.586 118.627 Q 141.318 118.017 141.293 117.089 Q 141.269 116.161 141.318 115.649 Q 141.366 115.136 141.537 114.013 Q 141.708 112.89 141.708 112.743 Q 142.49 106.884 145.712 91.259 Q 145.81 90.771 146.591 86.913 Q 147.372 83.056 147.763 81.054 Q 147.812 80.859 147.861 80.419 Q 147.909 79.98 147.958 79.735 Q 146.152 81.933 143.466 86.474 Q 139.706 92.773 133.261 104.687 Q 126.816 116.601 125.204 119.482 Z M 549.472 129.345 L 548.447 135.644 Q 547.128 144.14 544.199 161.034 Q 541.269 178.222 537.997 187.89 Q 537.07 190.722 536.557 192.113 Q 536.044 193.505 534.946 195.751 Q 533.847 197.997 532.626 199.56 Q 531.601 200.878 530.307 201.708 Q 529.013 202.538 527.45 202.709 Q 525.888 202.88 524.521 201.708 Q 522.568 200.097 521.835 197.118 Q 521.103 194.14 521.298 191.015 Q 521.493 186.23 524.277 178.71 Q 530.868 160.497 542.245 139.648 L 542.294 139.599 L 542.294 139.501 Q 542.734 136.864 543.564 131.64 Q 544.394 126.415 544.833 123.778 Q 545.859 117.48 547.861 104.858 Q 549.863 92.235 550.888 85.937 Q 549.374 92.187 547.519 98.583 Q 545.37 106.005 543.32 110.985 Q 541.366 115.819 539.999 117.724 Q 537.411 121.386 534.482 120.312 Q 534.335 120.263 534.091 120.019 Q 532.187 119.189 531.015 117.235 Q 529.843 115.282 529.55 113.036 Q 529.257 110.79 529.135 108.373 Q 529.013 105.956 529.208 104.198 Q 529.404 100.78 529.965 96.654 Q 530.527 92.528 530.966 90.038 Q 531.406 87.548 532.455 82.299 Q 533.505 77.05 533.798 75.439 Q 534.14 73.583 535.898 73.876 Q 537.46 74.12 538.241 75.585 Q 538.681 76.366 538.583 77.148 Q 537.9 82.568 536.093 91.21 Q 535.995 92.187 534.97 97.216 Q 534.091 101.562 533.505 105.859 Q 533.261 108.788 533.261 109.423 Q 533.261 113.183 533.896 115.136 Q 534.531 116.991 535.409 117.528 Q 537.021 118.505 539.413 115.575 L 539.462 115.526 Q 541.318 112.646 543.027 108.153 Q 544.199 105.175 545.224 102.148 Q 546.249 99.12 547.397 95.092 Q 548.544 91.064 549.032 89.281 Q 549.521 87.499 550.912 82.128 Q 552.304 76.757 552.499 75.927 Q 552.548 75.829 552.548 75.658 Q 552.548 75.487 552.597 75.39 Q 552.646 75.292 552.695 75.219 Q 552.743 75.146 552.743 75.048 Q 552.841 74.853 552.841 74.755 Q 552.841 74.706 552.865 74.706 Q 552.89 74.706 552.89 74.657 Q 553.574 73.778 554.697 73.852 Q 555.82 73.925 556.772 74.95 Q 557.724 75.976 557.529 77.196 Q 555.917 88.28 550.009 125.732 Q 550.546 124.804 551.596 122.924 Q 552.646 121.044 553.183 120.116 Q 554.697 117.431 559.408 108.837 Q 564.12 100.243 566.806 95.653 Q 567.001 95.312 567.416 95.531 Q 567.831 95.751 567.636 96.142 Q 566.074 99.413 564.389 102.611 Q 562.704 105.81 560.483 109.838 Q 558.261 113.866 557.138 115.893 Q 556.015 117.919 553.085 123.046 Q 550.156 128.173 549.472 129.345 Z M 274.374 35.302 L 274.863 35.302 L 275.546 35.302 Q 276.376 35.4 276.767 35.546 Q 278.232 36.083 279.062 37.353 Q 280.136 39.11 279.843 43.212 Q 279.501 47.167 277.646 53.612 Q 272.812 70.312 264.657 90.429 Q 263.486 97.167 262.802 101.464 Q 261.142 111.864 259.384 124.364 Q 259.579 124.169 259.848 123.876 Q 260.116 123.583 260.214 123.485 Q 263.193 120.116 267.001 115.038 Q 273.788 105.81 279.452 95.312 Q 279.55 95.165 279.697 95.19 Q 279.843 95.214 279.941 95.36 Q 280.038 95.507 279.99 95.653 Q 275.937 105.077 265.536 119.042 Q 261.142 124.95 259.238 127.05 Q 262.363 130.419 262.851 136.132 Q 264.12 151.22 260.947 173.876 Q 259.726 182.47 257.773 191.357 Q 257.626 191.894 257.309 193.359 Q 256.991 194.823 256.821 195.58 Q 256.65 196.337 256.332 197.533 Q 256.015 198.73 255.673 199.706 Q 255.331 200.683 254.892 201.61 Q 254.941 202.196 254.355 202.465 Q 253.769 202.734 253.183 202.245 Q 252.792 201.903 252.353 201.22 Q 252.011 200.683 251.718 199.999 Q 251.425 199.316 251.254 198.778 Q 251.083 198.241 250.912 197.338 Q 250.741 196.435 250.668 196.02 Q 250.595 195.605 250.449 194.579 Q 250.302 193.555 250.253 193.261 Q 249.472 187.499 249.374 179.443 Q 249.179 163.72 251.865 139.843 Q 252.011 138.427 252.206 136.816 Q 252.402 135.204 252.646 133.276 Q 252.89 131.347 253.036 130.224 Q 251.181 129.735 249.911 127.685 Q 249.325 126.708 250.009 126.073 Q 250.009 125.732 250.156 125.439 Q 251.23 123.534 253.818 124.071 Q 255.429 112.255 258.31 94.921 Q 262.021 72.607 265.829 56.347 Q 267.831 47.851 269.199 43.456 Q 270.859 37.987 272.177 36.23 Q 273.007 35.107 274.374 35.302 Z M 362.509 2.441 Q 363.925 4.882 362.997 10.009 Q 362.411 13.134 359.433 22.167 Q 356.943 29.687 353.281 39.355 Q 342.538 67.528 334.921 85.644 Q 333.652 92.577 332.968 97.509 Q 332.87 98.095 332.382 101.513 Q 331.894 104.931 331.747 106.322 Q 331.601 107.714 331.601 110.253 Q 331.601 112.792 331.991 114.745 Q 332.431 116.894 333.627 118.383 Q 334.824 119.872 336.532 118.944 Q 337.118 118.651 337.656 118.139 Q 338.193 117.626 338.73 116.845 Q 339.267 116.064 339.56 115.6 Q 339.853 115.136 340.39 114.11 Q 340.927 113.085 341.025 112.89 Q 342.734 109.765 345.59 103.759 Q 348.447 97.753 349.814 95.116 Q 349.911 94.97 350.033 94.994 Q 350.156 95.019 350.253 95.141 Q 350.351 95.263 350.302 95.409 Q 348.886 99.267 345.468 106.689 Q 341.611 115.136 339.316 118.359 Q 337.46 120.898 335.507 120.8 Q 330.82 120.507 329.452 113.134 Q 327.89 104.882 328.72 93.798 Q 328.476 95.214 327.304 100.194 Q 325.058 109.716 322.909 114.843 Q 322.372 116.064 322.055 116.723 Q 321.738 117.382 321.03 118.529 Q 320.322 119.677 319.467 120.19 Q 318.613 120.702 317.587 120.653 Q 315.488 120.507 313.852 118.92 Q 312.216 117.333 311.288 115.136 Q 309.433 110.839 309.97 103.564 Q 310.361 97.851 312.46 90.526 Q 314.511 83.544 317.001 79.345 Q 319.882 74.413 323.007 73.876 Q 324.863 73.534 326.449 74.682 Q 328.036 75.829 328.574 77.685 Q 329.404 80.761 329.599 85.351 Q 330.82 76.22 333.456 64.648 Q 340.732 32.519 349.277 12.255 Q 351.327 7.47 352.89 4.833 Q 354.99 1.366 356.65 0.439 Q 358.261 -0.343 359.921 0.268 Q 361.581 0.878 362.509 2.441 Z M 461.044 115.575 L 461.093 115.526 Q 462.949 112.646 464.657 108.153 Q 465.829 105.224 466.83 102.221 Q 467.831 99.218 468.93 95.336 Q 470.029 91.454 470.566 89.55 Q 471.103 87.646 472.397 82.568 Q 473.691 77.489 473.984 76.464 Q 473.984 76.269 474.081 75.927 Q 474.179 75.585 474.228 75.439 L 474.374 74.999 Q 474.374 74.95 474.423 74.877 Q 474.472 74.804 474.472 74.755 Q 474.472 74.706 474.496 74.706 Q 474.521 74.706 474.521 74.657 Q 475.4 73.193 477.304 74.267 Q 479.208 75.341 479.013 77.148 Q 478.329 82.568 476.523 91.21 Q 476.474 91.601 475.351 97.216 Q 474.472 101.562 473.886 105.859 Q 473.691 108.202 473.691 109.472 Q 473.691 113.329 474.277 115.136 Q 474.911 116.991 475.79 117.528 Q 477.402 118.456 479.648 115.819 Q 479.794 115.624 479.99 115.234 Q 481.796 112.353 483.652 107.616 Q 487.07 98.925 491.904 80.517 Q 492.099 78.466 492.294 77.343 Q 492.294 77.245 492.392 76.733 Q 492.49 76.22 492.538 76 Q 492.587 75.78 492.709 75.39 Q 492.831 74.999 493.002 74.706 Q 493.173 74.413 493.368 74.218 L 493.515 74.218 Q 493.515 74.169 493.564 74.096 Q 493.613 74.023 493.613 73.974 Q 493.661 73.778 493.808 73.778 Q 493.954 73.778 494.076 73.901 Q 494.199 74.023 494.199 74.169 Q 494.15 74.413 494.052 74.877 Q 493.954 75.341 493.906 75.536 Q 493.906 75.732 493.857 75.976 Q 493.808 76.22 493.735 76.537 Q 493.661 76.855 493.613 77.001 Q 493.32 78.564 493.173 80.126 Q 492.88 83.153 493.124 86.474 Q 493.417 90.234 494.15 92.138 Q 494.736 93.651 496.005 94.555 Q 497.275 95.458 498.74 95.068 Q 498.886 95.019 499.057 95.19 Q 499.228 95.36 499.252 95.531 Q 499.277 95.702 499.081 95.8 Q 497.714 96.288 496.42 95.922 Q 495.126 95.556 494.199 94.482 Q 492.636 92.724 492.05 88.866 Q 491.855 87.548 491.757 84.862 Q 490.048 91.845 488.241 97.9 Q 485.8 106.103 483.993 110.546 Q 482.089 115.136 480.527 117.48 Q 477.792 121.337 474.863 120.312 Q 474.765 120.312 474.521 120.019 Q 472.616 119.189 471.445 117.235 Q 470.273 115.282 469.955 113.036 Q 469.638 110.79 469.516 108.398 Q 469.394 106.005 469.589 104.247 Q 469.882 98.73 471.298 90.575 Q 469.931 95.946 469.15 98.583 Q 466.952 106.151 464.95 111.034 Q 463.046 115.722 461.63 117.724 Q 459.042 121.386 456.113 120.312 Q 455.966 120.263 455.722 120.019 Q 453.818 119.189 452.646 117.235 Q 451.474 115.282 451.181 113.036 Q 450.888 110.79 450.766 108.373 Q 450.644 105.956 450.839 104.198 Q 451.034 100.78 451.596 96.654 Q 452.157 92.528 452.597 90.038 Q 453.036 87.548 454.086 82.299 Q 455.136 77.05 455.429 75.439 Q 455.771 73.583 457.529 73.876 Q 459.091 74.12 459.872 75.585 Q 460.312 76.366 460.214 77.148 Q 459.531 82.568 457.724 91.21 Q 457.577 92.187 456.601 97.216 Q 455.722 101.562 455.136 105.859 Q 454.892 108.788 454.892 109.472 Q 454.892 113.183 455.527 115.136 Q 456.161 117.04 456.991 117.528 Q 458.652 118.505 461.044 115.575 Z M 39.316 115.575 L 39.316 115.526 Q 41.122 112.743 42.88 108.105 Q 43.564 106.298 44.272 104.296 Q 44.98 102.294 45.517 100.658 Q 46.054 99.023 46.762 96.703 Q 47.47 94.384 47.861 93.041 Q 48.251 91.698 48.959 89.062 Q 49.667 86.425 49.936 85.351 Q 50.204 84.276 50.961 81.347 Q 51.718 78.417 51.962 77.538 Q 52.011 77.196 52.157 76.488 Q 52.304 75.78 52.353 75.439 Q 52.695 73.583 54.452 73.876 Q 56.015 74.12 56.796 75.585 Q 57.236 76.366 57.138 77.148 Q 56.406 82.909 54.697 90.966 Q 54.648 91.552 53.525 97.216 Q 52.646 101.562 52.06 105.859 Q 51.816 108.788 51.816 109.423 Q 51.816 113.183 52.45 115.136 Q 53.085 116.991 53.964 117.528 Q 55.868 118.603 58.798 114.501 Q 59.091 114.062 59.531 113.232 Q 59.97 112.401 60.116 112.109 Q 61.435 109.716 62.607 107.152 Q 63.779 104.589 65.414 100.634 Q 67.05 96.679 67.538 95.507 Q 67.636 95.263 67.929 95.385 Q 68.222 95.507 68.124 95.751 Q 63.876 108.642 59.726 115.526 Q 58.993 116.747 58.725 117.138 Q 58.456 117.528 57.675 118.529 Q 56.894 119.53 56.137 119.945 Q 55.38 120.36 54.501 120.458 Q 52.304 120.653 50.717 118.749 Q 49.13 116.845 48.495 114.403 Q 47.812 111.816 47.714 108.544 Q 47.616 105.273 47.812 103.051 Q 48.007 100.829 48.495 97.167 Q 49.081 93.066 49.423 91.015 L 47.372 98.534 Q 45.029 106.542 43.222 110.985 Q 41.318 115.624 39.853 117.724 Q 37.265 121.337 34.335 120.263 Q 34.189 120.214 33.993 120.019 Q 32.089 119.189 30.917 117.235 Q 29.745 115.282 29.428 113.036 Q 29.111 110.79 28.989 108.373 Q 28.866 105.956 29.062 104.198 Q 29.257 100.78 29.819 96.703 Q 30.38 92.626 30.868 89.989 Q 31.357 87.353 32.358 82.348 Q 33.359 77.343 33.7 75.439 Q 34.042 73.583 35.8 73.876 Q 37.363 74.12 38.144 75.585 Q 38.583 76.366 38.486 77.148 Q 37.802 82.568 35.995 91.21 Q 35.947 91.601 34.824 97.216 Q 33.945 101.562 33.359 105.859 Q 33.163 108.202 33.163 109.423 Q 33.163 113.329 33.749 115.136 Q 34.384 116.991 35.263 117.528 Q 36.923 118.505 39.316 115.575 Z M 313.046 95.507 Q 313.144 95.36 313.29 95.36 Q 313.437 95.36 313.559 95.507 Q 313.681 95.653 313.632 95.8 Q 309.433 108.593 305.234 115.526 Q 304.452 116.894 303.891 117.675 Q 303.329 118.456 302.231 119.408 Q 301.132 120.36 299.96 120.458 Q 297.763 120.653 296.2 118.749 Q 294.638 116.845 294.003 114.403 Q 292.441 108.349 293.857 97.9 Q 293.759 98.29 293.588 99.047 Q 293.417 99.804 293.32 100.194 Q 291.074 109.716 288.925 114.843 Q 288.534 115.771 288.29 116.308 Q 288.046 116.845 287.485 117.821 Q 286.923 118.798 286.41 119.335 Q 285.898 119.872 285.141 120.287 Q 284.384 120.702 283.554 120.653 Q 281.503 120.507 279.867 118.944 Q 278.232 117.382 277.304 115.136 Q 275.449 110.839 275.986 103.564 Q 276.376 97.655 278.427 90.526 Q 280.478 83.544 282.968 79.345 Q 283.847 77.929 284.555 76.977 Q 285.263 76.025 286.484 75.072 Q 287.704 74.12 289.023 73.876 Q 290.878 73.534 292.465 74.682 Q 294.052 75.829 294.589 77.685 Q 295.517 81.054 295.615 87.06 Q 296.005 85.155 296.738 81.274 Q 297.47 77.392 297.861 75.439 Q 298.202 73.583 299.96 73.876 Q 301.523 74.12 302.304 75.585 Q 302.743 76.366 302.646 77.148 Q 302.011 82.372 300.156 90.966 Q 300.009 92.187 299.032 97.216 Q 298.154 101.562 297.568 105.859 Q 297.324 108.788 297.324 109.423 Q 297.324 113.183 297.958 115.136 Q 298.593 117.04 299.423 117.528 Q 301.327 118.651 304.306 114.501 Q 304.599 114.062 305.038 113.232 Q 305.478 112.401 305.624 112.109 Q 306.943 109.716 308.115 107.152 Q 309.286 104.589 310.922 100.634 Q 312.558 96.679 313.046 95.507 Z M 453.427 95.507 Q 453.525 95.36 453.671 95.36 Q 453.818 95.36 453.94 95.507 Q 454.062 95.653 454.013 95.8 Q 449.814 108.593 445.615 115.526 Q 444.833 116.894 444.272 117.675 Q 443.71 118.456 442.612 119.408 Q 441.513 120.36 440.341 120.458 Q 438.144 120.653 436.581 118.749 Q 435.019 116.845 434.384 114.403 Q 432.822 108.349 434.238 97.9 Q 434.14 98.29 433.969 99.047 Q 433.798 99.804 433.7 100.194 Q 431.454 109.716 429.306 114.843 Q 428.915 115.771 428.671 116.308 Q 428.427 116.845 427.865 117.821 Q 427.304 118.798 426.791 119.335 Q 426.279 119.872 425.522 120.287 Q 424.765 120.702 423.935 120.653 Q 421.884 120.507 420.248 118.944 Q 418.613 117.382 417.685 115.136 Q 415.829 110.839 416.366 103.564 Q 416.757 97.655 418.808 90.526 Q 420.859 83.544 423.349 79.345 Q 424.228 77.929 424.936 76.977 Q 425.644 76.025 426.865 75.072 Q 428.085 74.12 429.404 73.876 Q 431.259 73.534 432.846 74.682 Q 434.433 75.829 434.97 77.685 Q 435.898 81.054 435.995 87.06 Q 436.386 85.155 437.118 81.274 Q 437.851 77.392 438.241 75.439 Q 438.583 73.583 440.341 73.876 Q 441.904 74.12 442.685 75.585 Q 443.124 76.366 443.027 77.148 Q 442.392 82.372 440.536 90.966 Q 440.39 92.187 439.413 97.216 Q 438.534 101.562 437.949 105.859 Q 437.704 108.788 437.704 109.423 Q 437.704 113.183 438.339 115.136 Q 438.974 117.04 439.804 117.528 Q 441.708 118.651 444.687 114.501 Q 444.98 114.062 445.419 113.232 Q 445.859 112.401 446.005 112.109 Q 447.324 109.716 448.495 107.152 Q 449.667 104.589 451.303 100.634 Q 452.939 96.679 453.427 95.507 Z M 532.187 95.507 Q 532.284 95.36 532.431 95.36 Q 532.577 95.36 532.699 95.507 Q 532.822 95.653 532.773 95.8 Q 528.574 108.593 524.374 115.526 Q 523.593 116.894 523.032 117.675 Q 522.47 118.456 521.371 119.408 Q 520.273 120.36 519.101 120.458 Q 516.904 120.653 515.341 118.749 Q 513.779 116.845 513.144 114.403 Q 511.581 108.349 512.997 97.9 Q 512.9 98.29 512.729 99.047 Q 512.558 99.804 512.46 100.194 Q 510.214 109.716 508.066 114.843 Q 507.675 115.771 507.431 116.308 Q 507.187 116.845 506.625 117.821 Q 506.064 118.798 505.551 119.335 Q 505.038 119.872 504.282 120.287 Q 503.525 120.702 502.695 120.653 Q 500.644 120.507 499.008 118.944 Q 497.372 117.382 496.445 115.136 Q 494.589 110.839 495.126 103.564 Q 495.517 97.655 497.568 90.526 Q 499.618 83.544 502.109 79.345 Q 502.988 77.929 503.696 76.977 Q 504.404 76.025 505.624 75.072 Q 506.845 74.12 508.163 73.876 Q 510.019 73.534 511.606 74.682 Q 513.193 75.829 513.73 77.685 Q 514.657 81.054 514.755 87.06 Q 515.146 85.155 515.878 81.274 Q 516.611 77.392 517.001 75.439 Q 517.343 73.583 519.101 73.876 Q 520.663 74.12 521.445 75.585 Q 521.884 76.366 521.786 77.148 Q 521.152 82.372 519.296 90.966 Q 519.15 92.187 518.173 97.216 Q 517.294 101.562 516.708 105.859 Q 516.464 108.788 516.464 109.423 Q 516.464 113.183 517.099 115.136 Q 517.734 117.04 518.564 117.528 Q 520.468 118.651 523.447 114.501 Q 523.74 114.062 524.179 113.232 Q 524.618 112.401 524.765 112.109 Q 526.083 109.716 527.255 107.152 Q 528.427 104.589 530.063 100.634 Q 531.699 96.679 532.187 95.507 Z M 10.849 115.38 L 11.191 115.038 Q 10.702 111.913 8.871 106.078 Q 7.04 100.243 6.552 97.314 Q 5.185 89.257 10.458 79.443 Q 12.704 75.292 15.536 71.435 Q 15.683 71.239 16 70.776 Q 16.318 70.312 16.464 70.092 Q 16.611 69.872 16.952 69.457 Q 17.294 69.042 17.49 68.871 Q 17.685 68.7 18.075 68.383 Q 18.466 68.066 18.759 68.066 Q 19.052 68.066 19.516 67.943 Q 19.98 67.821 20.37 68.066 Q 23.691 68.944 21.689 74.218 Q 19.98 78.661 15.829 86.767 Q 11.679 94.872 11.093 96.093 L 11.044 96.142 Q 10.898 98.583 11.191 101.122 Q 11.435 103.173 12.24 107.201 Q 13.046 111.23 13.29 113.036 Q 23.642 103.026 32.968 95.165 Q 33.212 94.97 33.505 95.116 Q 33.798 95.263 33.896 95.531 Q 33.993 95.8 33.798 96.044 Q 30.575 99.071 23.715 105.077 Q 16.855 111.083 13.486 114.306 Q 14.413 122.411 10.751 127.441 Q 9.14 129.638 6.699 131.103 Q 4.257 132.568 1.865 132.177 Q 0.79 131.982 0.326 131.054 Q -0.137 130.126 0.058 129.052 Q 0.449 127.001 3.232 123.485 Q 5.527 120.605 10.849 115.38 Z M 372.909 115.38 L 373.251 115.038 Q 372.763 111.913 370.932 106.078 Q 369.101 100.243 368.613 97.314 Q 367.245 89.257 372.519 79.443 Q 374.765 75.292 377.597 71.435 Q 377.743 71.239 378.061 70.776 Q 378.378 70.312 378.525 70.092 Q 378.671 69.872 379.013 69.457 Q 379.355 69.042 379.55 68.871 Q 379.745 68.7 380.136 68.383 Q 380.527 68.066 380.82 68.066 Q 381.113 68.066 381.576 67.943 Q 382.04 67.821 382.431 68.066 Q 385.751 68.944 383.749 74.218 Q 382.04 78.661 377.89 86.767 Q 373.74 94.872 373.154 96.093 L 373.105 96.142 Q 372.958 98.583 373.251 101.122 Q 373.495 103.173 374.301 107.201 Q 375.107 111.23 375.351 113.036 Q 385.702 103.026 395.029 95.165 Q 395.273 94.97 395.566 95.116 Q 395.859 95.263 395.956 95.531 Q 396.054 95.8 395.859 96.044 Q 392.636 99.071 385.776 105.077 Q 378.915 111.083 375.546 114.306 Q 376.474 122.411 372.812 127.441 Q 371.2 129.638 368.759 131.103 Q 366.318 132.568 363.925 132.177 Q 362.851 131.982 362.387 131.054 Q 361.923 130.126 362.118 129.052 Q 362.509 127.001 365.292 123.485 Q 367.587 120.605 372.909 115.38 Z M 219.98 77.929 L 219.98 77.978 Q 219.784 79.833 219.638 80.712 Q 219.394 82.177 218.759 84.887 Q 218.124 87.597 217.978 88.28 Q 215.488 99.999 215.292 106.591 Q 215.048 116.015 218.613 119.14 Q 220.615 120.702 222.372 120.287 Q 224.13 119.872 225.644 117.919 Q 227.792 115.234 230.087 110.058 Q 233.456 102.636 235.654 95.8 Q 235.702 95.653 235.58 95.507 Q 235.458 95.36 235.312 95.36 Q 235.165 95.36 235.068 95.507 Q 234.531 96.728 232.553 101.659 Q 230.575 106.591 229.086 109.618 Q 227.597 112.646 225.693 115.38 Q 223.202 118.554 221.493 117.528 Q 220.615 116.991 219.98 115.136 Q 219.345 113.183 219.345 109.472 Q 219.345 108.837 219.589 105.907 Q 219.882 103.466 220.663 99.218 Q 220.956 97.997 221.86 94.53 Q 222.763 91.064 223.202 89.159 Q 224.374 84.081 224.716 81.542 Q 225.107 78.905 224.863 77.343 Q 224.863 77.245 224.838 77.026 Q 224.814 76.806 224.814 76.757 Q 224.667 75.976 224.228 75.292 Q 223.495 74.12 221.591 73.241 Q 220.859 72.9 219.516 72.338 Q 218.173 71.776 217.88 71.63 Q 215.488 70.556 213.241 69.042 Q 213.681 66.698 213.437 65.234 Q 213.095 63.329 211.728 63.72 Q 210.702 64.013 210.532 65.453 Q 210.361 66.894 210.751 67.724 Q 211.142 68.944 212.021 69.872 Q 211.484 72.851 210.995 74.462 Q 210.947 74.609 211.069 74.755 Q 211.191 74.901 211.362 74.901 Q 211.532 74.901 211.581 74.706 Q 212.216 72.9 212.851 70.653 Q 213.241 70.995 215.781 72.558 Q 218.32 74.12 219.247 75.487 Q 219.54 75.878 219.931 77.099 Q 219.98 77.196 219.98 77.343 L 219.98 77.782 L 219.98 77.831 L 219.98 77.88 L 219.98 77.929 Z M 200.741 77.685 L 200.741 77.831 Q 201.523 80.321 200.888 84.472 Q 199.863 90.624 196.493 95.312 Q 195.663 96.484 194.907 97.289 Q 194.15 98.095 193.1 98.827 Q 192.05 99.56 190.878 99.511 Q 189.706 99.462 188.583 98.534 Q 187.949 97.997 187.216 96.923 Q 187.118 97.362 186.899 98.217 Q 186.679 99.071 186.508 99.755 L 186.191 101.025 Q 185.654 103.466 185.434 104.565 Q 185.214 105.663 184.921 107.787 Q 184.628 109.911 184.726 111.596 Q 184.824 113.28 185.312 114.843 Q 185.702 116.064 186.215 116.772 Q 186.728 117.48 187.753 117.821 Q 189.95 118.456 192.587 115.917 Q 195.126 113.427 198.3 107.86 Q 199.423 105.907 201.572 101.684 Q 203.72 97.46 204.99 95.312 Q 205.087 95.165 205.209 95.19 Q 205.331 95.214 205.429 95.36 Q 205.527 95.507 205.478 95.653 Q 202.402 103.417 197.372 111.816 Q 194.101 117.333 191.122 119.433 Q 189.023 120.849 187.021 120.336 Q 185.019 119.823 183.505 118.188 Q 181.991 116.552 181.308 114.452 Q 178.915 107.079 181.747 96.337 Q 184.726 85.204 189.316 78.759 Q 191.855 75.292 194.003 74.267 Q 196.152 73.241 198.178 74.291 Q 200.204 75.341 200.741 77.685 Z M 365.829 77.685 L 365.829 77.831 Q 366.611 80.321 365.976 84.472 Q 364.95 90.624 361.581 95.312 Q 360.751 96.484 359.994 97.289 Q 359.238 98.095 358.188 98.827 Q 357.138 99.56 355.966 99.511 Q 354.794 99.462 353.671 98.534 Q 353.036 97.997 352.304 96.923 Q 352.206 97.362 351.987 98.217 Q 351.767 99.071 351.596 99.755 L 351.279 101.025 Q 350.741 103.466 350.522 104.565 Q 350.302 105.663 350.009 107.787 Q 349.716 109.911 349.814 111.596 Q 349.911 113.28 350.4 114.843 Q 350.79 116.064 351.303 116.772 Q 351.816 117.48 352.841 117.821 Q 355.038 118.456 357.675 115.917 Q 360.214 113.427 363.388 107.86 Q 364.511 105.907 366.659 101.684 Q 368.808 97.46 370.077 95.312 Q 370.175 95.165 370.297 95.19 Q 370.419 95.214 370.517 95.36 Q 370.615 95.507 370.566 95.653 Q 367.49 103.417 362.46 111.816 Q 359.189 117.333 356.21 119.433 Q 354.111 120.849 352.109 120.336 Q 350.107 119.823 348.593 118.188 Q 347.079 116.552 346.396 114.452 Q 344.003 107.079 346.835 96.337 Q 349.814 85.204 354.404 78.759 Q 356.943 75.292 359.091 74.267 Q 361.24 73.241 363.266 74.291 Q 365.292 75.341 365.829 77.685 Z M 357.431 16.698 Q 358.945 9.911 358.896 6.689 Q 358.896 6.054 358.847 5.712 Q 358.798 5.761 358.7 5.883 Q 358.603 6.005 358.554 6.054 Q 358.554 6.103 358.505 6.151 Q 355.331 11.083 351.669 21.044 Q 343.564 43.114 337.558 72.069 Q 336.777 75.878 335.605 81.933 Q 336.972 78.026 338.144 74.804 Q 349.57 43.261 353.281 31.737 Q 355.673 24.413 357.431 16.698 Z M 260.165 155.468 Q 260.556 146.337 259.872 138.329 Q 259.482 134.13 258.407 131.933 Q 256.699 145.019 256.65 145.605 Q 253.622 170.409 252.89 182.86 Q 252.402 191.308 252.792 195.116 Q 253.085 197.753 253.476 199.023 Q 253.866 200.194 254.306 200.683 Q 254.55 199.511 254.99 197.314 Q 255.429 195.116 255.771 193.334 Q 256.113 191.552 256.357 189.989 Q 259.579 168.944 260.165 155.468 Z M 537.607 172.851 Q 538.339 168.114 539.487 159.325 Q 540.634 150.536 540.927 148.534 Q 541.074 147.655 541.342 145.898 Q 541.611 144.14 541.757 143.261 Q 531.796 161.913 525.546 179.54 Q 522.665 187.743 522.763 192.431 Q 522.861 197.118 524.667 199.609 Q 525.449 200.732 526.523 200.805 Q 527.597 200.878 528.5 200.268 Q 529.404 199.657 530.185 198.681 Q 531.308 197.265 533.017 192.724 Q 533.993 190.185 535.019 186.474 Q 536.337 181.493 537.607 172.851 Z M 275.058 43.163 L 275.009 43.163 Q 274.716 43.993 273.495 48.144 Q 271.738 54.54 270.077 62.157 Q 268.124 71.093 265.634 84.862 Q 268.71 75.976 270.81 69.091 Q 271.054 68.261 272.079 64.989 Q 273.105 61.718 273.495 60.448 Q 273.886 59.179 274.667 56.322 Q 275.449 53.466 275.815 51.684 Q 276.181 49.901 276.547 47.509 Q 276.913 45.116 277.06 42.968 Q 277.157 41.21 276.962 39.989 Q 276.962 39.941 276.938 39.843 Q 276.913 39.745 276.865 39.623 Q 276.816 39.501 276.767 39.355 Q 276.376 39.941 276.23 40.234 Q 275.986 40.722 275.595 41.698 Q 275.351 42.187 275.204 42.626 Q 275.156 42.724 275.107 42.87 Q 275.058 43.017 275.058 43.114 L 275.058 43.163 Z M 289.609 108.642 Q 292.782 100.048 294.784 89.159 Q 294.491 85.937 293.906 82.714 Q 293.271 79.345 292.197 78.075 Q 291.708 77.489 290.927 77.636 Q 290.634 77.636 290.39 77.88 Q 289.999 78.222 289.316 79.003 Q 289.267 79.052 288.949 79.516 Q 288.632 79.98 288.486 80.224 Q 287.704 81.493 287.46 81.933 Q 286.581 83.593 285.556 86.132 Q 283.798 90.722 282.48 96.776 Q 281.161 103.222 281.113 107.763 Q 281.113 109.325 281.088 110.644 Q 281.064 111.962 281.235 113.402 Q 281.406 114.843 281.845 115.966 Q 282.968 118.944 284.921 117.187 Q 285.995 116.21 286.972 114.526 Q 287.949 112.841 288.388 111.791 Q 288.827 110.741 289.609 108.642 Z M 429.99 108.642 Q 433.163 100.048 435.165 89.159 Q 434.872 85.937 434.286 82.714 Q 433.652 79.345 432.577 78.075 Q 432.089 77.489 431.308 77.636 Q 431.015 77.636 430.771 77.88 Q 430.38 78.222 429.697 79.003 Q 429.648 79.052 429.33 79.516 Q 429.013 79.98 428.866 80.224 Q 428.085 81.493 427.841 81.933 Q 426.962 83.593 425.937 86.132 Q 424.179 90.722 422.861 96.776 Q 421.542 103.222 421.493 107.763 Q 421.493 109.325 421.469 110.644 Q 421.445 111.962 421.615 113.402 Q 421.786 114.843 422.226 115.966 Q 423.349 118.944 425.302 117.187 Q 426.376 116.21 427.353 114.526 Q 428.329 112.841 428.769 111.791 Q 429.208 110.741 429.99 108.642 Z M 508.749 108.642 Q 511.923 100.048 513.925 89.159 Q 513.632 85.937 513.046 82.714 Q 512.411 79.345 511.337 78.075 Q 510.849 77.489 510.068 77.636 Q 509.775 77.636 509.531 77.88 Q 509.14 78.222 508.456 79.003 Q 508.407 79.052 508.09 79.516 Q 507.773 79.98 507.626 80.224 Q 506.845 81.493 506.601 81.933 Q 505.722 83.593 504.697 86.132 Q 502.939 90.722 501.62 96.776 Q 500.302 103.222 500.253 107.763 Q 500.253 109.325 500.229 110.644 Q 500.204 111.962 500.375 113.402 Q 500.546 114.843 500.986 115.966 Q 502.109 118.944 504.062 117.187 Q 505.136 116.21 506.113 114.526 Q 507.089 112.841 507.529 111.791 Q 507.968 110.741 508.749 108.642 Z M 323.593 108.642 Q 326.767 100.048 328.769 89.159 Q 328.427 85.4 327.939 82.714 Q 327.353 79.491 326.181 78.124 Q 325.693 77.489 324.911 77.636 Q 324.618 77.636 324.374 77.88 Q 323.984 78.222 323.3 79.003 Q 323.251 79.052 322.934 79.516 Q 322.616 79.98 322.47 80.224 Q 321.884 81.103 321.493 81.933 Q 320.615 83.593 319.589 86.132 Q 317.734 90.966 316.464 96.776 Q 315.146 103.222 315.097 107.763 Q 315.097 109.325 315.073 110.644 Q 315.048 111.962 315.219 113.402 Q 315.39 114.843 315.829 115.966 Q 316.952 118.944 318.906 117.187 Q 319.98 116.21 320.956 114.526 Q 321.933 112.841 322.372 111.791 Q 322.812 110.741 323.593 108.642 Z M 195.224 94.726 L 195.566 94.042 Q 196.786 91.601 197.47 88.769 Q 198.056 86.474 198.202 83.251 Q 198.3 79.491 197.958 78.222 Q 197.909 77.88 197.763 77.636 Q 197.177 77.636 196.493 78.075 L 196.396 78.124 L 196.347 78.173 Q 196.2 78.271 195.907 78.564 Q 195.761 78.71 195.029 79.54 Q 193.32 81.542 191.415 85.448 Q 189.072 90.185 187.411 96.239 Q 188.241 97.704 189.535 98.51 Q 190.829 99.316 192.148 98.583 Q 192.49 98.388 192.782 98.168 Q 193.075 97.948 193.393 97.558 Q 193.71 97.167 193.881 96.947 Q 194.052 96.728 194.394 96.166 Q 194.736 95.605 194.809 95.483 Q 194.882 95.36 195.224 94.726 Z M 360.312 94.726 L 360.654 94.042 Q 361.874 91.601 362.558 88.769 Q 363.144 86.474 363.29 83.251 Q 363.388 79.491 363.046 78.222 Q 362.997 77.88 362.851 77.636 Q 362.265 77.636 361.581 78.075 L 361.484 78.124 L 361.435 78.173 Q 361.288 78.271 360.995 78.564 Q 360.849 78.71 360.116 79.54 Q 358.407 81.542 356.503 85.448 Q 354.159 90.185 352.499 96.239 Q 353.329 97.704 354.623 98.51 Q 355.917 99.316 357.236 98.583 Q 357.577 98.388 357.87 98.168 Q 358.163 97.948 358.481 97.558 Q 358.798 97.167 358.969 96.947 Q 359.14 96.728 359.482 96.166 Q 359.824 95.605 359.897 95.483 Q 359.97 95.36 360.312 94.726 Z M 19.296 74.657 Q 15.048 81.591 13.388 85.546 Q 11.581 89.843 11.142 94.433 Q 11.825 92.919 13.144 90.111 Q 14.462 87.304 15.488 84.984 Q 16.513 82.665 17.343 80.566 Q 18.759 77.148 19.296 74.657 Z M 381.357 74.657 Q 377.109 81.591 375.449 85.546 Q 373.642 89.843 373.202 94.433 Q 373.886 92.919 375.204 90.111 Q 376.523 87.304 377.548 84.984 Q 378.574 82.665 379.404 80.566 Q 380.82 77.148 381.357 74.657 Z M 11.435 116.698 Q 11.435 116.601 11.386 116.503 L 11.386 116.357 Q 7.138 120.605 4.355 124.071 Q 1.279 127.929 1.181 129.833 Q 1.181 131.005 2.646 130.859 Q 5.087 130.663 6.943 129.223 Q 8.798 127.782 9.799 125.658 Q 10.8 123.534 11.215 121.215 Q 11.63 118.896 11.435 116.698 Z M 373.495 116.698 Q 373.495 116.601 373.447 116.503 L 373.447 116.357 Q 369.199 120.605 366.415 124.071 Q 363.339 127.929 363.241 129.833 Q 363.241 131.005 364.706 130.859 Q 367.148 130.663 369.003 129.223 Q 370.859 127.782 371.86 125.658 Q 372.861 123.534 373.276 121.215 Q 373.691 118.896 373.495 116.698 Z M 212.216 64.843 Q 211.923 64.843 211.874 65.404 Q 211.825 65.966 211.923 66.527 Q 212.021 67.089 212.07 67.284 Q 212.167 67.528 212.363 67.919 Q 212.558 66.552 212.411 65.624 Q 212.411 64.843 212.216 64.843 Z M 358.554 4.443 L 358.554 4.394 Q 358.505 4.345 358.505 4.272 Q 358.505 4.198 358.456 4.15 Q 358.505 4.198 358.505 4.296 Q 358.505 4.394 358.554 4.443 Z M 358.603 4.638 L 358.603 4.54 Q 358.554 4.491 358.554 4.54 Q 358.554 4.589 358.603 4.638 Z M 219.98 77.978 L 219.98 78.026 L 219.98 77.978 Z" />
+                    </g>
+
+                    <filter id="glow-core" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="blur1"/>
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur2"/>
+                        <feMerge>
+                            <feMergeNode in="blur2"/>
+                            <feMergeNode in="blur1"/>
+                            <feMergeNode in="SourceGraphic"/>
+                        </feMerge>
+                    </filter>
+
+                    <filter id="glow-inner" x="-100%" y="-100%" width="300%" height="300%">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur1"/>
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="15" result="blur2"/>
+                        <feColorMatrix in="blur2" type="matrix"
+                            values="1 0 0 0 0.2
+                                    0 1 0 0 0
+                                    0 0 1 0 0.2
+                                    0 0 0 1.2 0" result="pink"/>
+                        <feMerge>
+                            <feMergeNode in="pink"/>
+                            <feMergeNode in="blur1"/>
+                        </feMerge>
+                    </filter>
+                </defs>
+
+                <use href="#midnight-logo-path" class="layer-atmosphere" />
+                <use href="#midnight-logo-path" class="layer-outer-glow" />
+                <use href="#midnight-logo-path" class="layer-inner-glow" />
+                <use href="#midnight-logo-path" class="layer-tube-off" />
+                <use href="#midnight-logo-path" class="layer-glitch-red" />
+                <use href="#midnight-logo-path" class="layer-glitch-cyan" />
+                <use href="#midnight-logo-path" class="layer-core" />
+            </svg>
+        `;
+        stageContainer.appendChild(logoWrapper);
+
+        const scanlines = document.createElement('div');
+        scanlines.className = 'neon-scanlines';
+
+        document.body.insertBefore(scanlines, document.body.firstChild);
+        document.body.insertBefore(stageContainer, document.body.firstChild);
+
+        // 添加光尘粒子层
+        const dustLayer = document.createElement('div');
+        dustLayer.id = 'dust-layer';
+        dustLayer.innerHTML = `
+            <div class="dust"></div>
+            <div class="dust"></div>
+            <div class="dust"></div>
+            <div class="dust"></div>
+        `;
+        document.body.insertBefore(dustLayer, document.body.firstChild);
+
+        // ==================== 动画变种随机切换系统 ====================
+        
+        const VARIANT_COUNT = 6;
+        const VARIANT_DURATIONS = {
+            1: 10000,  // 10s - 经典电压不稳
+            2: 10000,  // 10s - 接触不良
+            3: 12000,  // 12s - 电压不足
+            4: 14000,  // 14s - 落日余晖
+            5: 11000,  // 11s - 酒吧微醺
+            6: 13000   // 13s - 午夜梦回
+        };
+
+        let currentVariant = 0;
+        let animationTimer = null;
+        const isStaticMode = Boolean(window.__NEON_STATIC_MODE);
+
+        // 获取随机变种（避免连续重复）
+        function getRandomVariant(exclude) {
+            let newVariant;
+            do {
+                newVariant = Math.floor(Math.random() * VARIANT_COUNT) + 1;
+            } while (newVariant === exclude && VARIANT_COUNT > 1);
+            return newVariant;
+        }
+
+        // 应用变种
+        function applyVariant(variantNum) {
+            // 移除所有变种类
+            for (let i = 1; i <= VARIANT_COUNT; i++) {
+                stageContainer.classList.remove(`flicker-variant-${i}`);
+            }
+            
+            // 强制重绘以重启动画
+            void stageContainer.offsetWidth;
+            
+            // 应用新变种
+            stageContainer.classList.add(`flicker-variant-${variantNum}`);
+            currentVariant = variantNum;
+            
+            // 设置下一次切换的定时器
+            if (animationTimer) {
+                clearTimeout(animationTimer);
+                animationTimer = null;
+            }
+
+            if (!isStaticMode) {
+                const duration = VARIANT_DURATIONS[variantNum];
+                animationTimer = setTimeout(() => {
+                    const nextVariant = getRandomVariant(currentVariant);
+                    applyVariant(nextVariant);
+                }, duration);
+            }
+        }
+
+        // 初始化：随机选择第一个变种
+        const initialVariant = getRandomVariant(0);
+        applyVariant(initialVariant);
+
+        // 页面可见性变化时处理
+        document.addEventListener('visibilitychange', function() {
+            if (isStaticMode) {
+                return;
+            }
+
+            if (document.visibilityState === 'visible') {
+                // 页面重新可见时，重新启动动画
+                const nextVariant = getRandomVariant(currentVariant);
+                applyVariant(nextVariant);
+            } else {
+                // 页面隐藏时，清除定时器节省资源
+                if (animationTimer) {
+                    clearTimeout(animationTimer);
+                    animationTimer = null;
+                }
+            }
+        });
+    });
+</script>
+
+<script src="https://s4.zstatic.net/ajax/libs/js-polyfills/0.1.43/polyfill.min.js?features=String.prototype.replaceAll"></script>

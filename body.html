@@ -1,0 +1,116 @@
+<!-- Neon Theme v4.0 - Body Script -->
+
+<!-- 修正部分区域的透明 -->
+<style>
+    .hope-ui-light,
+    .hope-ui-dark {
+        --hope-colors-background: transparent;
+    }
+</style>
+
+<!-- 登录界面优化 -->
+<style>
+    .hope-c-PJLV-ifjOQLV-css {
+        box-shadow: var(--hope-shadows-lg);
+    }
+
+    .hope-c-PJLV-ihWgyFw-css,
+    .hope-c-PJLV-ibiABng-css {
+        display: none;
+    }
+</style>
+
+<script type="module">
+    // v4.0 - Neon Dark Glass
+
+    class Beautifier {
+        /**
+         * Beautifier 类用于美化页面背景色
+         *
+         * 其提供了3个方法：
+         * - observe: 开始监听页面变化并美化背景色
+         * - disconnect: 停止监听页面变化
+         * - undo: 恢复页面背景色到默认状态
+         *
+         * 可以通过window.beautifier访问实例对象
+         *
+         */
+        static ignoredSelectors = [
+            '.hope-tooltip',
+            '.hope-tooltip__arrow',
+            '.hope-checkbox__control',
+            '.hope-modal__overlay',
+            'button:not(.hope-menu__trigger)',
+            'svg'
+        ];
+
+        static getSelector(mainSelector) {
+            return `${mainSelector} :not(${Beautifier.ignoredSelectors.join('):not(')})`;
+        }
+
+        // light 和 dark 都处理
+        static lightSelector = Beautifier.getSelector('.hope-ui-light');
+        static darkSelector = Beautifier.getSelector('.hope-ui-dark');
+
+        // 统一的深紫黑玻璃背景色（无模糊）
+        static glassBgColor = 'rgba(20, 10, 25, 0.7)';
+
+        constructor() {
+            this.observer = null;
+        }
+
+        #rewriteStyle() {
+            // light 和 dark 模式都处理
+            const selectors = [Beautifier.lightSelector, Beautifier.darkSelector];
+
+            selectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(element => {
+                    const computedStyle = getComputedStyle(element);
+
+                    // 只要不是完全透明就刷成深紫黑玻璃
+                    if (computedStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+                        element.style.backgroundColor = Beautifier.glassBgColor;
+                        element.setAttribute('data-beautified', 'true');
+                    }
+                });
+            });
+        }
+
+        #beautify() {
+            // 跳过管理页面
+            if (!location.pathname.startsWith('/@manage')) {
+                this.#rewriteStyle();
+            }
+        }
+
+        observe() {
+            this.observer = new MutationObserver(this.#beautify.bind(this));
+            this.observer.observe(document.getElementById('root'), {
+                childList: true,
+                subtree: true
+            });
+
+            this.#beautify();
+        }
+
+        disconnect() {
+            if (this.observer) {
+                this.observer.disconnect();
+            }
+        }
+
+        undo() {
+            this.disconnect();
+
+            document.body.querySelectorAll('[data-beautified]').forEach(element => {
+                element.style.backgroundColor = '';
+                element.removeAttribute('data-beautified');
+            });
+        }
+    }
+
+    const beautifier = new Beautifier();
+    window.beautifier = beautifier;
+
+    beautifier.observe();
+</script>
